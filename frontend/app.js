@@ -1,7 +1,7 @@
 /**
  * TowerAI Frontend Application Logic
- * Problem Statement 1: AI-Based Tower Component Detection and Visualization
- * ELECTROHACK 4.0 - KSIT & Nemilink Technologies
+ * Intelligent Telecom Tower Component Detection & Visualization
+ * Autonomous Infrastructure Vision System
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -119,25 +119,161 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------------------------------------------
-  // TAB NAVIGATION
+  // THEME MANAGEMENT (2 Dark Themes + 2 Pastel/Light Themes)
   // -------------------------------------------------------------
-  navTabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      navTabs.forEach(t => t.classList.remove("active"));
-      tabPanes.forEach(p => p.classList.remove("active"));
-      tab.classList.add("active");
-      const targetId = tab.getAttribute("data-tab");
-      document.getElementById(targetId).classList.add("active");
-      state.activeTab = targetId;
+  const THEMES = {
+    "dark-cyber": { name: "Cyber Obsidian", icon: "🌙" },
+    "dark-amethyst": { name: "Midnight Amethyst", icon: "🌌" },
+    "pastel-blossom": { name: "Pastel Blossom", icon: "🌸" },
+    "pastel-mint": { name: "Pastel Mint & Sky", icon: "🌿" }
+  };
 
-      if (targetId === "studioTab") {
-        loadReviewImages();
-        refreshDatasetStats();
-      } else if (targetId === "evalTab") {
-        fetchModelStatus();
+  const themeToggleBtn = document.getElementById("themeToggleBtn");
+  const themeMenu = document.getElementById("themeMenu");
+  const themeCurrentIcon = document.getElementById("themeCurrentIcon");
+  const themeCurrentName = document.getElementById("themeCurrentName");
+  const themeOptions = document.querySelectorAll(".theme-option");
+
+  function applyTheme(themeKey, save = true) {
+    if (!THEMES[themeKey]) themeKey = "dark-cyber";
+    document.documentElement.setAttribute("data-theme", themeKey);
+
+    themeOptions.forEach((btn) => {
+      if (btn.dataset.theme === themeKey) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
       }
     });
+
+    if (themeCurrentIcon) themeCurrentIcon.textContent = THEMES[themeKey].icon;
+    if (themeCurrentName) themeCurrentName.textContent = THEMES[themeKey].name;
+
+    if (save) {
+      try {
+        localStorage.setItem("towerai_theme", themeKey);
+      } catch (err) {
+        console.warn("Could not save theme to localStorage", err);
+      }
+    }
+  }
+
+  if (themeToggleBtn && themeMenu) {
+    themeToggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = themeMenu.classList.contains("open");
+      if (isOpen) {
+        themeMenu.classList.remove("open");
+        themeToggleBtn.setAttribute("aria-expanded", "false");
+      } else {
+        themeMenu.classList.add("open");
+        themeToggleBtn.setAttribute("aria-expanded", "true");
+      }
+    });
+
+    themeOptions.forEach((opt) => {
+      opt.addEventListener("click", () => {
+        const selectedTheme = opt.dataset.theme;
+        applyTheme(selectedTheme, true);
+        themeMenu.classList.remove("open");
+        themeToggleBtn.setAttribute("aria-expanded", "false");
+        showToast(`Theme changed to ${THEMES[selectedTheme].name}`, "info");
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!themeMenu.contains(e.target) && !themeToggleBtn.contains(e.target)) {
+        themeMenu.classList.remove("open");
+        themeToggleBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && themeMenu.classList.contains("open")) {
+        themeMenu.classList.remove("open");
+        themeToggleBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
+  let savedTheme = "dark-cyber";
+  try {
+    savedTheme = localStorage.getItem("towerai_theme") || "dark-cyber";
+  } catch (err) {
+    savedTheme = "dark-cyber";
+  }
+  applyTheme(savedTheme, false);
+
+  // -------------------------------------------------------------
+  // TAB NAVIGATION & HERO CTAS
+  // -------------------------------------------------------------
+  function switchTab(targetId) {
+    navTabs.forEach(t => {
+      if (t.getAttribute("data-tab") === targetId) {
+        t.classList.add("active");
+      } else {
+        t.classList.remove("active");
+      }
+    });
+    tabPanes.forEach(p => {
+      if (p.id === targetId) {
+        p.classList.add("active");
+      } else {
+        p.classList.remove("active");
+      }
+    });
+    state.activeTab = targetId;
+
+    if (targetId === "studioTab") {
+      loadReviewImages();
+      refreshDatasetStats();
+    } else if (targetId === "evalTab") {
+      fetchModelStatus();
+    }
+  }
+
+  navTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const targetId = tab.getAttribute("data-tab");
+      switchTab(targetId);
+    });
   });
+
+  // Hero Section CTA buttons
+  const heroBtnStart = document.getElementById("heroBtnStart");
+  const heroBtnStudio = document.getElementById("heroBtnStudio");
+  const heroBtnMetrics = document.getElementById("heroBtnMetrics");
+
+  if (heroBtnStart) {
+    heroBtnStart.addEventListener("click", () => {
+      switchTab("inferenceTab");
+      if (dropzone) {
+        dropzone.scrollIntoView({ behavior: "smooth", block: "center" });
+        dropzone.classList.add("pulse-focus");
+        setTimeout(() => dropzone.classList.remove("pulse-focus"), 2200);
+      }
+    });
+  }
+
+  if (heroBtnStudio) {
+    heroBtnStudio.addEventListener("click", () => {
+      switchTab("studioTab");
+      const studioTab = document.getElementById("studioTab");
+      if (studioTab) {
+        studioTab.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+
+  if (heroBtnMetrics) {
+    heroBtnMetrics.addEventListener("click", () => {
+      switchTab("evalTab");
+      const evalTab = document.getElementById("evalTab");
+      if (evalTab) {
+        evalTab.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
 
   // -------------------------------------------------------------
   // TAB 1: INFERENCE & DASHBOARD LOGIC
@@ -392,7 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
     imageOutputWrapper.style.display = "flex";
     processedImg.src = data.annotated_image_base64;
 
-    // 4. Average Confidence Score per Class (Required by Problem Statement)
+    // 4. Average Confidence Score per Class
     classAveragesSection.style.display = "block";
     const avgMap = data.class_averages || {};
 

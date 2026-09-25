@@ -1,6 +1,6 @@
 """
 Flask REST API and Web Server for AI-Based Tower Component Detection and Visualization
-Problem Statement 1 - ELECTROHACK 4.0 (KSIT & Nemilink Technologies)
+TowerAI Autonomous Vision Platform
 """
 
 import os
@@ -19,7 +19,10 @@ from backend.model_trainer import TowerModelTrainer
 
 app = Flask(__name__, static_folder="../frontend", static_url_path="")
 
-UPLOAD_FOLDER = os.path.abspath("d:/college/TowerDetection/test_images")
+# Determine upload directory: prefer workspace local or fallback to d: drive
+_local_upload = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "test_images"))
+_d_upload = os.path.abspath("d:/college/TowerDetection/test_images")
+UPLOAD_FOLDER = _d_upload if os.path.exists(_d_upload) else _local_upload
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024  # 64 MB max

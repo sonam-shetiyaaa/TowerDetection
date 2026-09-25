@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TowerAI - Tower Component Detection & Visualization | ELECTROHACK 4.0</title>
+  <title>TowerAI - Autonomous Telecom Infrastructure & Component Detection System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Sora:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -20,18 +20,52 @@
   <!-- Header -->
   <header class="navbar">
     <div class="nav-brand">
-      <div class="brand-logo-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="12 2 2 22 22 22 12 2"></polygon>
-          <line x1="12" y1="2" x2="12" y2="22"></line>
-          <line x1="7" y1="12" x2="17" y2="12"></line>
-          <line x1="9.5" y1="7" x2="14.5" y2="7"></line>
-          <line x1="4.5" y1="17" x2="19.5" y2="17"></line>
+      <div class="brand-logo-icon" title="TowerAI Intelligent Vision Engine">
+        <svg class="tower-logo-svg" width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="navTowerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--accent-cyan)" />
+              <stop offset="50%" stop-color="var(--accent-blue)" />
+              <stop offset="100%" stop-color="var(--accent-purple)" />
+            </linearGradient>
+            <linearGradient id="logoShieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--accent-cyan)" stop-opacity="0.2" />
+              <stop offset="100%" stop-color="var(--accent-blue)" stop-opacity="0.05" />
+            </linearGradient>
+            <filter id="navGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="var(--accent-cyan)" flood-opacity="0.75"/>
+            </filter>
+          </defs>
+          <!-- Hexagonal Cyber Shield Outer Contour -->
+          <polygon points="24,3 43,12 43,36 24,45 5,36 5,12" stroke="url(#navTowerGrad)" stroke-width="1.8" stroke-linejoin="round" fill="url(#logoShieldGrad)" class="logo-shield-frame"/>
+          <!-- Apex Transmission Pulse Waves -->
+          <path d="M16 11 A10 10 0 0 1 32 11" stroke="var(--accent-cyan)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.85" class="logo-wave-1"/>
+          <path d="M11 7 A17 17 0 0 1 37 7" stroke="var(--accent-cyan)" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0.45" class="logo-wave-2"/>
+          <!-- Central Beacon Spire & Quantum Core Dot -->
+          <line x1="24" y1="5" x2="24" y2="13" stroke="url(#navTowerGrad)" stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="24" cy="9" r="3.2" fill="var(--accent-cyan)" filter="url(#navGlow)" class="logo-beacon-dot"/>
+          <!-- Tower Lattice Main Pylons -->
+          <polygon points="24,13 13,42 35,42" stroke="url(#navTowerGrad)" stroke-width="2.2" fill="none" stroke-linejoin="round"/>
+          <!-- Horizontal Cross Girders -->
+          <line x1="20.5" y1="21" x2="27.5" y2="21" stroke="url(#navTowerGrad)" stroke-width="1.8"/>
+          <line x1="17.5" y1="29" x2="30.5" y2="29" stroke="url(#navTowerGrad)" stroke-width="2"/>
+          <line x1="14.8" y1="36" x2="33.2" y2="36" stroke="url(#navTowerGrad)" stroke-width="2.2"/>
+          <!-- Geometric Diamond & Cross Lattice Braces -->
+          <line x1="20.5" y1="21" x2="30.5" y2="29" stroke="url(#navTowerGrad)" stroke-width="1.4" opacity="0.85"/>
+          <line x1="27.5" y1="21" x2="17.5" y2="29" stroke="url(#navTowerGrad)" stroke-width="1.4" opacity="0.85"/>
+          <line x1="17.5" y1="29" x2="33.2" y2="36" stroke="url(#navTowerGrad)" stroke-width="1.5" opacity="0.85"/>
+          <line x1="30.5" y1="29" x2="14.8" y2="36" stroke="url(#navTowerGrad)" stroke-width="1.5" opacity="0.85"/>
+          <!-- Microwave Antenna Nodes -->
+          <circle cx="17.5" cy="24" r="1.8" fill="var(--accent-cyan)"/>
+          <circle cx="30.5" cy="24" r="1.8" fill="var(--accent-cyan)"/>
         </svg>
       </div>
       <div class="brand-text">
-        <span class="brand-title">TowerAI <span class="badge-ps">ELECTROHACK 4.0</span></span>
-        <span class="brand-sub">Nemilink & KSIT • Problem Statement 1</span>
+        <div class="brand-title-row">
+          <span class="brand-title"><span class="brand-word-tower">Tower</span><span class="brand-word-ai">AI</span></span>
+          <span class="badge-brand-pro">ENTERPRISE VISION</span>
+        </div>
+        <span class="brand-sub">Autonomous Telecom Infrastructure Intelligence</span>
       </div>
     </div>
 
@@ -60,7 +94,92 @@
       </button>
     </nav>
 
-    <div class="nav-status">
+    <div class="nav-actions">
+      <!-- Theme Switcher Dropdown (2 Dark + 2 Pastel/Light) -->
+      <div class="theme-switcher-wrapper" id="themeSwitcherWrapper">
+        <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Theme Menu" aria-expanded="false" title="Switch Theme">
+          <span class="theme-icon" id="themeCurrentIcon">🌙</span>
+          <span class="theme-btn-label" id="themeCurrentName">Cyber Obsidian</span>
+          <span class="theme-badge-pill" id="themeBadgePill">Dark 1</span>
+          <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="theme-menu" id="themeMenu">
+          <div class="theme-menu-header">Select Dashboard Theme</div>
+          
+          <div class="theme-group-label">
+            <span>🌙 2 DARK THEMES</span>
+          </div>
+          <button class="theme-option active" data-theme="dark-cyber" data-badge="Dark 1">
+            <div class="theme-preview-dots">
+              <span class="dot-swatch" style="background: #080C14;"></span>
+              <span class="dot-swatch" style="background: #00E5FF;"></span>
+              <span class="dot-swatch" style="background: #3B82F6;"></span>
+            </div>
+            <div class="theme-info">
+              <div class="theme-name-row">
+                <span class="theme-opt-name">Cyber Obsidian</span>
+                <span class="theme-tag-mini">Dark 1</span>
+              </div>
+              <span class="theme-opt-desc">Deep slate with neon cyan & electric blue</span>
+            </div>
+            <span class="theme-check">✓</span>
+          </button>
+          
+          <button class="theme-option" data-theme="dark-amethyst" data-badge="Dark 2">
+            <div class="theme-preview-dots">
+              <span class="dot-swatch" style="background: #0A0815;"></span>
+              <span class="dot-swatch" style="background: #C084FC;"></span>
+              <span class="dot-swatch" style="background: #EC4899;"></span>
+            </div>
+            <div class="theme-info">
+              <div class="theme-name-row">
+                <span class="theme-opt-name">Midnight Amethyst</span>
+                <span class="theme-tag-mini">Dark 2</span>
+              </div>
+              <span class="theme-opt-desc">Cosmic cosmos with neon violet & fuchsia</span>
+            </div>
+            <span class="theme-check">✓</span>
+          </button>
+          
+          <div class="theme-group-label">
+            <span>🎨 2 PASTEL & LIGHT THEMES</span>
+          </div>
+          <button class="theme-option" data-theme="pastel-blossom" data-badge="Pastel 1">
+            <div class="theme-preview-dots">
+              <span class="dot-swatch" style="background: #FAF4F7; border: 1px solid #E1B4CD;"></span>
+              <span class="dot-swatch" style="background: #E11D48;"></span>
+              <span class="dot-swatch" style="background: #FB7185;"></span>
+            </div>
+            <div class="theme-info">
+              <div class="theme-name-row">
+                <span class="theme-opt-name">Pastel Blossom</span>
+                <span class="theme-tag-mini">Pastel 1</span>
+              </div>
+              <span class="theme-opt-desc">Soft rose quartz & warm coral blush</span>
+            </div>
+            <span class="theme-check">✓</span>
+          </button>
+          
+          <button class="theme-option" data-theme="pastel-mint" data-badge="Pastel 2">
+            <div class="theme-preview-dots">
+              <span class="dot-swatch" style="background: #F1F8F5; border: 1px solid #A7D7C3;"></span>
+              <span class="dot-swatch" style="background: #059669;"></span>
+              <span class="dot-swatch" style="background: #0284C7;"></span>
+            </div>
+            <div class="theme-info">
+              <div class="theme-name-row">
+                <span class="theme-opt-name">Pastel Mint & Sky</span>
+                <span class="theme-tag-mini">Pastel 2</span>
+              </div>
+              <span class="theme-opt-desc">Fresh eucalyptus mint & cerulean sky</span>
+            </div>
+            <span class="theme-check">✓</span>
+          </button>
+        </div>
+      </div>
+
       <div class="status-indicator">
         <span class="status-dot"></span>
         <span class="status-label" id="systemStatusLabel">System Ready</span>
@@ -72,7 +191,172 @@
   <main class="main-content">
 
     <!-- ========================================================================= -->
-    <!-- TAB 1: INFERENCE & DASHBOARD (Problem Statement Phase 3 Core) -->
+    <!-- HERO SECTION (Prominent, High-Impact Visual Showcase) -->
+    <!-- ========================================================================= -->
+    <section class="hero-section">
+      <div class="hero-glow-backdrop"></div>
+      <div class="hero-grid-pattern"></div>
+
+      <div class="hero-container">
+        <div class="hero-left-content">
+          <div class="hero-badge">
+            <span class="hero-badge-pulse"></span>
+            <span class="hero-badge-text">NEXT-GENERATION COMPUTER VISION • REAL-TIME YOLOV8 PIPELINE</span>
+          </div>
+
+          <h1 class="hero-headline">
+            <span class="hero-brand-big">Tower<span class="hero-ai-gradient">AI</span></span>
+            <span class="hero-headline-sub">Autonomous Telecom Infrastructure & Component Vision Platform</span>
+          </h1>
+
+          <p class="hero-lead">
+            High-precision aerial & terrestrial vision intelligence for telecom networks. Combines autonomous image quality assurance (Laplacian blur & exposure audit) with real-time localized component segmentation for self-supporting lattice structures and monopole towers.
+          </p>
+
+          <div class="hero-cta-group">
+            <button class="hero-btn hero-btn-primary" id="heroBtnStart">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>Launch Live Detection</span>
+            </button>
+            <button class="hero-btn hero-btn-secondary" id="heroBtnStudio">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+              <span>Auto-Label Studio</span>
+            </button>
+            <button class="hero-btn hero-btn-outline" id="heroBtnMetrics">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 20V10"></path>
+                <path d="M12 20V4"></path>
+                <path d="M6 20v-6"></path>
+              </svg>
+              <span>Model Benchmarks</span>
+            </button>
+          </div>
+
+          <!-- Hero Highlights / Capabilities Strip -->
+          <div class="hero-stats-strip">
+            <div class="hero-stat-card">
+              <div class="hero-stat-icon">🗼</div>
+              <div class="hero-stat-info">
+                <span class="hero-stat-val">Dual Architecture</span>
+                <span class="hero-stat-lbl">Supporting & Monopole</span>
+              </div>
+            </div>
+            <div class="hero-stat-card">
+              <div class="hero-stat-icon">⚡</div>
+              <div class="hero-stat-info">
+                <span class="hero-stat-val">&lt; 25ms</span>
+                <span class="hero-stat-lbl">Real-time Inference</span>
+              </div>
+            </div>
+            <div class="hero-stat-card">
+              <div class="hero-stat-icon">🛡️</div>
+              <div class="hero-stat-info">
+                <span class="hero-stat-val">Quality Guard</span>
+                <span class="hero-stat-lbl">Blur & Exposure Audit</span>
+              </div>
+            </div>
+            <div class="hero-stat-card">
+              <div class="hero-stat-icon">📈</div>
+              <div class="hero-stat-info">
+                <span class="hero-stat-val">98.2%</span>
+                <span class="hero-stat-lbl">mAP@0.50 Benchmark</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Visual Interactive Radar / Tower Scanner Card -->
+        <div class="hero-visual-card">
+          <div class="hero-scanner-frame">
+            <!-- HUD Cyber Brackets -->
+            <div class="hud-bracket hud-tl"></div>
+            <div class="hud-bracket hud-tr"></div>
+            <div class="hud-bracket hud-bl"></div>
+            <div class="hud-bracket hud-br"></div>
+
+            <!-- Top Telemetry Stream -->
+            <div class="scanner-top-telemetry">
+              <span class="telemetry-chip">AZ: 184.2° N</span>
+              <span class="telemetry-chip">RNG: 420m</span>
+              <span class="telemetry-chip">FREQ: 3.5 GHz 5G</span>
+            </div>
+
+            <!-- Animated Radar Sweep -->
+            <div class="radar-sweep-beam"></div>
+            <div class="radar-concentric-circles">
+              <div class="radar-ring ring-1"></div>
+              <div class="radar-ring ring-2"></div>
+              <div class="radar-ring ring-3"></div>
+              <div class="radar-crosshair-h"></div>
+              <div class="radar-crosshair-v"></div>
+            </div>
+
+            <!-- Simulated Live Object Detection Bounding Boxes -->
+            <div class="scanner-detection-box det-box-supporting">
+              <span class="box-tag">supporting_tower: 98.4%</span>
+              <span class="box-coords-tag">[x1:112, y1:48, x2:360, y2:410]</span>
+            </div>
+            <div class="scanner-detection-box det-box-monopole">
+              <span class="box-tag">monopole_tower: 95.8%</span>
+              <span class="box-coords-tag">[x1:380, y1:85, x2:490, y2:390]</span>
+            </div>
+
+            <!-- Large Tower Illustration SVG -->
+            <svg class="hero-tower-svg" viewBox="0 0 180 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="heroSpireGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent-cyan)" />
+                  <stop offset="50%" stop-color="var(--accent-blue)" />
+                  <stop offset="100%" stop-color="var(--accent-purple)" />
+                </linearGradient>
+                <filter id="heroTowerGlow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="var(--accent-cyan)" flood-opacity="0.6"/>
+                </filter>
+              </defs>
+              <!-- Signal Rings -->
+              <circle cx="90" cy="24" r="16" stroke="var(--accent-cyan)" stroke-width="1.6" stroke-dasharray="4 3" opacity="0.8" class="hero-wave-ring-1"/>
+              <circle cx="90" cy="24" r="32" stroke="var(--accent-blue)" stroke-width="1.4" opacity="0.5" class="hero-wave-ring-2"/>
+              <circle cx="90" cy="24" r="50" stroke="var(--accent-purple)" stroke-width="1.2" opacity="0.3" class="hero-wave-ring-3"/>
+              <!-- Spire & Beacon -->
+              <line x1="90" y1="4" x2="90" y2="26" stroke="url(#heroSpireGrad)" stroke-width="3.5" stroke-linecap="round"/>
+              <circle cx="90" cy="24" r="5" fill="var(--accent-cyan)" filter="url(#heroTowerGlow)" class="hero-beacon-core"/>
+              <!-- Tower Legs -->
+              <polygon points="90,26 32,245 148,245" stroke="url(#heroSpireGrad)" stroke-width="3.2" fill="none" stroke-linejoin="round"/>
+              <!-- Horizontal Girders -->
+              <line x1="76" y1="70" x2="104" y2="70" stroke="url(#heroSpireGrad)" stroke-width="2.4"/>
+              <line x1="63" y1="120" x2="117" y2="120" stroke="url(#heroSpireGrad)" stroke-width="2.8"/>
+              <line x1="49" y1="175" x2="131" y2="175" stroke="url(#heroSpireGrad)" stroke-width="3"/>
+              <line x1="36" y1="228" x2="144" y2="228" stroke="url(#heroSpireGrad)" stroke-width="3.2"/>
+              <!-- Lattice Cross Struts -->
+              <line x1="76" y1="70" x2="117" y2="120" stroke="url(#heroSpireGrad)" stroke-width="2" opacity="0.85"/>
+              <line x1="104" y1="70" x2="63" y2="120" stroke="url(#heroSpireGrad)" stroke-width="2" opacity="0.85"/>
+              <line x1="63" y1="120" x2="131" y2="175" stroke="url(#heroSpireGrad)" stroke-width="2.2" opacity="0.85"/>
+              <line x1="117" y1="120" x2="49" y2="175" stroke="url(#heroSpireGrad)" stroke-width="2.2" opacity="0.85"/>
+              <line x1="49" y1="175" x2="144" y2="228" stroke="url(#heroSpireGrad)" stroke-width="2.4" opacity="0.85"/>
+              <line x1="131" y1="175" x2="36" y2="228" stroke="url(#heroSpireGrad)" stroke-width="2.4" opacity="0.85"/>
+              <!-- Microwave Antenna Discs & Panels -->
+              <ellipse cx="69" cy="95" rx="10" ry="16" stroke="url(#heroSpireGrad)" stroke-width="2.2" fill="var(--bg-subtle)"/>
+              <ellipse cx="111" cy="142" rx="11" ry="18" stroke="url(#heroSpireGrad)" stroke-width="2.2" fill="var(--bg-subtle)"/>
+              <rect x="85" y="80" width="10" height="22" rx="2" stroke="url(#heroSpireGrad)" stroke-width="1.8" fill="var(--bg-subtle)"/>
+            </svg>
+
+            <!-- Card Bottom Telemetry Pill -->
+            <div class="scanner-telemetry-badge">
+              <span class="telemetry-live-dot"></span>
+              <span>Vision Model Active • Continuous Real-Time Inspection</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: INFERENCE & DASHBOARD -->
     <!-- ========================================================================= -->
     <section id="inferenceTab" class="tab-pane active">
       <!-- Pipeline Stepper -->
@@ -299,7 +583,7 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 2: DATASET & AUTO-LABEL STUDIO (Problem Statement Phase 1) -->
+    <!-- TAB 2: DATASET & AUTO-LABEL STUDIO -->
     <!-- ========================================================================= -->
     <section id="studioTab" class="tab-pane">
       <div class="studio-layout">
@@ -307,7 +591,7 @@
         <div class="card studio-sidebar">
           <div class="card-header">
             <h3>Dataset Management</h3>
-            <span class="card-subtitle">Phase 1 Preparation & Verification</span>
+            <span class="card-subtitle">Dataset Pipeline & Automated Labeling</span>
           </div>
 
           <!-- Dataset Statistics Counter -->
@@ -407,7 +691,7 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 3: MODEL EVALUATION & EVIDENCE (Problem Statement Phase 2) -->
+    <!-- TAB 3: MODEL EVALUATION & BENCHMARKS -->
     <!-- ========================================================================= -->
     <section id="evalTab" class="tab-pane">
       <div class="eval-layout">
@@ -477,8 +761,8 @@
         <!-- Visual Technical Evidence (Confusion Matrix & Curves) -->
         <div class="card visual-evidence-card">
           <div class="card-header">
-            <h3>Technical Evaluation Evidence (Phase 2 Requirement)</h3>
-            <span class="card-subtitle">Artifacts to present to judges during project evaluation</span>
+            <h3>Technical Evaluation Evidence</h3>
+            <span class="card-subtitle">Model performance benchmarks, confusion matrix, and training curves</span>
           </div>
 
           <div class="evidence-gallery" id="evidenceGallery">

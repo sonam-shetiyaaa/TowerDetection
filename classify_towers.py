@@ -1,6 +1,6 @@
 """
 Telecom Tower Image Classification Tool
-ELECTROHACK 4.0 - Problem Statement 1
+ELECTROHACK 4.0 - Tower Component Classification
 
 1. Reads all images from an input folder.
 2. Uses the trained vision model (YOLOv8 & Structure Feature Analysis) to classify each image into:

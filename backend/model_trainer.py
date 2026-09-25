@@ -16,10 +16,19 @@ from ultralytics import YOLO
 class TowerModelTrainer:
     def __init__(
         self,
-        yaml_path: str = "d:/college/TowerDetection/dataset/data.yaml",
-        output_model_dir: str = "d:/college/TowerDetection/model",
+        yaml_path: str = None,
+        output_model_dir: str = None,
         base_weights: str = "yolov8n.pt"
     ):
+        if yaml_path is None:
+            d_yaml = "d:/college/TowerDetection/dataset/data.yaml"
+            loc_yaml = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset", "data.yaml"))
+            yaml_path = d_yaml if os.path.exists(d_yaml) else loc_yaml
+        if output_model_dir is None:
+            d_model = "d:/college/TowerDetection/model"
+            loc_model = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "model"))
+            output_model_dir = d_model if os.path.exists(d_model) else loc_model
+
         self.yaml_path = os.path.abspath(yaml_path)
         self.output_model_dir = os.path.abspath(output_model_dir)
         self.base_weights = base_weights

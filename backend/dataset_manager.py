@@ -15,7 +15,11 @@ from typing import Dict, Any, List
 
 
 class DatasetManager:
-    def __init__(self, root_dir: str = "d:/college/TowerDetection/dataset"):
+    def __init__(self, root_dir: str = None):
+        if root_dir is None:
+            d_path = "d:/college/TowerDetection/dataset"
+            local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
+            root_dir = d_path if os.path.exists(d_path) else local_path
         self.root_dir = os.path.abspath(root_dir)
         self.images_train_dir = os.path.join(self.root_dir, "images", "train")
         self.images_val_dir = os.path.join(self.root_dir, "images", "val")

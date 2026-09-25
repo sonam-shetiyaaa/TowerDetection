@@ -1,6 +1,6 @@
 """
 Telecom Tower Image Classification using OpenAI CLIP
-Problem Statement: AI-Based Tower Component Classification (ELECTROHACK 4.0)
+ELECTROHACK 4.0 - Tower Component Classification
 
 Classes:
 1. supporting_tower: Self-supporting lattice telecom tower with steel cross-bracing framework.
