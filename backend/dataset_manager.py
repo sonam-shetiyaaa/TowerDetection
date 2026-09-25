@@ -152,8 +152,17 @@ class DatasetManager:
     def compute_statistics(self) -> Dict[str, Any]:
         """Audits dataset labels and counts instances per class."""
         class_counts = {0: 0, 1: 0}
-        total_images = len(glob.glob(os.path.join(self.raw_images_dir, "*")))
-        annotated_files = glob.glob(os.path.join(self.annotations_dir, "*.txt"))
+        img_exts = ("*.jpg", "*.jpeg", "*.png", "*.webp")
+        raw_imgs = set()
+        for ext in img_exts:
+            for p in glob.glob(os.path.join(self.raw_images_dir, ext)):
+                raw_imgs.add(os.path.normcase(os.path.abspath(p)))
+        total_images = len(raw_imgs)
+
+        annotated_files = [
+            f for f in glob.glob(os.path.join(self.annotations_dir, "*.txt"))
+            if os.path.basename(f) != "classes.txt"
+        ]
         total_boxes = 0
 
         for txt_path in annotated_files:
@@ -165,8 +174,15 @@ class DatasetManager:
                         class_counts[cls_id] = class_counts.get(cls_id, 0) + 1
                         total_boxes += 1
 
-        train_imgs = len(glob.glob(os.path.join(self.images_train_dir, "*")))
-        val_imgs = len(glob.glob(os.path.join(self.images_val_dir, "*")))
+        train_imgs = set()
+        for ext in img_exts:
+            for p in glob.glob(os.path.join(self.images_train_dir, ext)):
+                train_imgs.add(os.path.normcase(os.path.abspath(p)))
+
+        val_imgs = set()
+        for ext in img_exts:
+            for p in glob.glob(os.path.join(self.images_val_dir, ext)):
+                val_imgs.add(os.path.normcase(os.path.abspath(p)))
 
         return {
             "total_raw_images": total_images,
@@ -184,8 +200,8 @@ class DatasetManager:
                 }
             },
             "split": {
-                "train_images": train_imgs,
-                "val_images": val_imgs
+                "train_images": len(train_imgs),
+                "val_images": len(val_imgs)
             }
         }
 

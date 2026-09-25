@@ -45,10 +45,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadProgressBar = document.getElementById("uploadProgressBar");
   const uploadProgressPct = document.getElementById("uploadProgressPct");
   const uploadFileName = document.getElementById("uploadFileName");
+  const uploadedPreviewContainer = document.getElementById("uploadedPreviewContainer");
   const uploadedPreview = document.getElementById("uploadedPreview");
   const previewImg = document.getElementById("previewImg");
   const previewName = document.getElementById("previewName");
   const previewDimensions = document.getElementById("previewDimensions");
+  const btnChangeImage = document.getElementById("btnChangeImage");
+  const btnClearImage = document.getElementById("btnClearImage");
   const confThreshold = document.getElementById("confThreshold");
   const confValue = document.getElementById("confValue");
   const btnExecute = document.getElementById("btnExecute");
@@ -64,7 +67,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const metricOver = document.getElementById("metricOver");
   const metricUnder = document.getElementById("metricUnder");
   const qualityReasonBanner = document.getElementById("qualityReasonBanner");
+  const btnBypassQuality = document.getElementById("btnBypassQuality");
   const emptyOutputState = document.getElementById("emptyOutputState");
+  const outputLoadingState = document.getElementById("outputLoadingState");
   const imageOutputWrapper = document.getElementById("imageOutputWrapper");
   const processedImg = document.getElementById("processedImg");
   const classAveragesSection = document.getElementById("classAveragesSection");
@@ -210,6 +215,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   applyTheme(savedTheme, false);
 
+  // Inform user if opened directly via file:// instead of http://localhost:5000
+  if (window.location.protocol === "file:") {
+    const banner = document.createElement("div");
+    banner.style.cssText = "background: linear-gradient(90deg, #F59E0B, #D97706); color: #000; font-weight: 600; text-align: center; padding: 10px 16px; font-size: 0.85rem; position: sticky; top: 0; z-index: 99999;";
+    banner.innerHTML = `⚠️ You opened the dashboard directly via file://. For live AI inference, please open <a href="http://localhost:5000" style="color: #000; text-decoration: underline; font-weight: 700;">http://localhost:5000</a> in your browser.`;
+    document.body.prepend(banner);
+  }
+
   // -------------------------------------------------------------
   // TAB NAVIGATION & HERO CTAS
   // -------------------------------------------------------------
@@ -290,8 +303,37 @@ document.addEventListener("DOMContentLoaded", () => {
     confValue.textContent = Number(e.target.value).toFixed(2);
   });
 
-  // Dropzone drag-drop
-  dropzone.addEventListener("click", () => fileInput.click());
+  // Dropzone drag-drop & click handlers
+  dropzone.addEventListener("click", () => {
+    fileInput.click();
+  });
+
+  // Prevent fileInput from bubbling click back to dropzone
+  fileInput.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
+  if (btnChangeImage) {
+    btnChangeImage.addEventListener("click", (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+  }
+
+  if (btnClearImage) {
+    btnClearImage.addEventListener("click", (e) => {
+      e.stopPropagation();
+      resetUploadState();
+    });
+  }
+
+  if (btnBypassQuality) {
+    btnBypassQuality.addEventListener("click", (e) => {
+      e.stopPropagation();
+      runPipelineExecution(true);
+    });
+  }
+
   dropzone.addEventListener("dragover", (e) => {
     e.preventDefault();
     dropzone.classList.add("dragover");
@@ -300,107 +342,198 @@ document.addEventListener("DOMContentLoaded", () => {
   dropzone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropzone.classList.remove("dragover");
-    if (e.dataTransfer.files.length > 0) {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFileUpload(e.dataTransfer.files[0]);
     }
   });
 
   fileInput.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) {
+    if (e.target.files && e.target.files.length > 0) {
       handleFileUpload(e.target.files[0]);
     }
+    // Reset value so selecting the same file repeatedly always triggers change
+    fileInput.value = "";
   });
 
+  // Reset upload state back to clean dropzone
+  function resetUploadState() {
+    state.selectedFile = null;
+    state.selectedFilename = null;
+    state.imageBase64 = null;
+    fileInput.value = "";
+
+    if (previewImg) previewImg.src = "";
+    if (uploadedPreviewContainer) uploadedPreviewContainer.style.display = "none";
+    if (dropzone) dropzone.style.display = "block";
+    if (dropzoneContent) dropzoneContent.style.display = "block";
+    if (uploadProgressWrapper) uploadProgressWrapper.style.display = "none";
+
+    resetStepper();
+    btnExecute.disabled = true;
+
+    if (qualityVerdictBadge) {
+      qualityVerdictBadge.className = "verdict-badge verdict-pending";
+      qualityVerdictBadge.innerHTML = `<span>Awaiting Execution</span>`;
+    }
+    if (qualityStatusText) qualityStatusText.textContent = "Pending inspection";
+    if (blurVal) blurVal.textContent = "--";
+    if (overVal) overVal.textContent = "--";
+    if (underVal) underVal.textContent = "--";
+    if (metricBlur) metricBlur.classList.remove("failed");
+    if (metricOver) metricOver.classList.remove("failed");
+    if (metricUnder) metricUnder.classList.remove("failed");
+
+    if (qualityReasonBanner) qualityReasonBanner.style.display = "none";
+    if (btnBypassQuality) btnBypassQuality.style.display = "none";
+    if (outputLoadingState) outputLoadingState.style.display = "none";
+    if (imageOutputWrapper) imageOutputWrapper.style.display = "none";
+    if (emptyOutputState) emptyOutputState.style.display = "block";
+    if (classAveragesSection) classAveragesSection.style.display = "none";
+    if (detectionsTableSection) detectionsTableSection.style.display = "none";
+  }
+
+  // Helper to convert File to Base64
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Upload Progress simulation & execution
-  function handleFileUpload(file) {
-    if (file.type && !file.type.startsWith("image/")) {
+  async function handleFileUpload(file) {
+    const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".jfif", ".tif", ".tiff"];
+    const filename = file.name || "tower_photo.jpg";
+    const ext = filename.substring(filename.lastIndexOf(".")).toLowerCase();
+    const isImageMime = file.type && file.type.startsWith("image/");
+    const isImageExt = validExtensions.includes(ext);
+
+    if (!isImageMime && !isImageExt) {
       showToast("Please upload an image file (JPG, PNG, WebP).", "error");
       return;
     }
 
     state.selectedFile = file;
-    state.selectedFilename = file.name;
+    state.selectedFilename = filename;
 
     // Reset Stepper
     resetStepper();
     stepUpload.classList.add("active");
 
-    // UI Progress Bar display (Phase 3 Requirement)
-    dropzoneContent.style.display = "none";
-    uploadedPreview.style.display = "none";
-    uploadProgressWrapper.style.display = "block";
-    uploadFileName.textContent = file.name;
-    uploadProgressBar.style.width = "0%";
-    uploadProgressPct.textContent = "0%";
+    // Instantly display the image in preview so user immediately sees their photo permanently
+    try {
+      const localUrl = URL.createObjectURL(file);
+      previewImg.src = localUrl;
+    } catch (e) {
+      console.warn("Could not create object URL:", e);
+    }
+    previewName.textContent = filename;
+    previewDimensions.textContent = `${(file.size / 1024).toFixed(1)} KB (Uploading...)`;
+
+    // Hide dropzone and show dedicated preview container
+    if (dropzone) dropzone.style.display = "none";
+    if (uploadedPreviewContainer) uploadedPreviewContainer.style.display = "block";
+    if (uploadedPreview) uploadedPreview.style.display = "block";
+    if (uploadProgressWrapper) uploadProgressWrapper.style.display = "block";
+    uploadFileName.textContent = filename;
+    uploadProgressBar.style.width = "25%";
+    uploadProgressPct.textContent = "25%";
     btnExecute.disabled = true;
 
+    // Read base64 in background for fallback & direct pipeline execution
+    try {
+      state.imageBase64 = await readFileAsBase64(file);
+    } catch (e) {
+      state.imageBase64 = null;
+    }
+
+    uploadProgressBar.style.width = "50%";
+    uploadProgressPct.textContent = "50%";
+
+    // Attempt multipart upload first
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("image", file, filename);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${API_BASE}/api/upload`, true);
+    try {
+      const res = await fetch(`${API_BASE}/api/upload`, {
+        method: "POST",
+        body: formData
+      });
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const pct = Math.round((e.loaded / e.total) * 100);
-        uploadProgressBar.style.width = `${pct}%`;
-        uploadProgressPct.textContent = `${pct}%`;
+      if (!res.ok) {
+        throw new Error(`Upload returned status ${res.status}`);
       }
-    };
 
-    xhr.onload = () => {
-      if (xhr.status === 200) {
+      const resp = await res.json();
+      state.selectedFilename = resp.filename || filename;
+
+      uploadProgressBar.style.width = "100%";
+      uploadProgressPct.textContent = "100%";
+
+      setTimeout(() => {
+        if (uploadProgressWrapper) uploadProgressWrapper.style.display = "none";
+        previewName.textContent = resp.filename || filename;
+        if (resp.width && resp.height) {
+          previewDimensions.textContent = `${resp.width} × ${resp.height}px (${resp.size_kb} KB)`;
+        }
+        stepUpload.classList.add("completed");
+        btnExecute.disabled = false;
+        showToast("Image uploaded successfully! Running detection...", "success");
+
+        // Automatically trigger detection pipeline so user gets instant output
+        runPipelineExecution(false);
+      }, 250);
+
+    } catch (primaryErr) {
+      console.warn("Multipart upload failed, attempting JSON Base64 fallback...", primaryErr);
+
+      // Fallback: Send via JSON Base64
+      if (state.imageBase64) {
         try {
-          const resp = JSON.parse(xhr.responseText);
-          state.selectedFilename = resp.filename;
+          const res2 = await fetch(`${API_BASE}/api/upload`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: filename,
+              image_base64: state.imageBase64
+            })
+          });
+
+          if (!res2.ok) throw new Error(`Base64 fallback status: ${res2.status}`);
+          const resp2 = await res2.json();
+          state.selectedFilename = resp2.filename || filename;
 
           uploadProgressBar.style.width = "100%";
           uploadProgressPct.textContent = "100%";
 
           setTimeout(() => {
-            uploadProgressWrapper.style.display = "none";
-            uploadedPreview.style.display = "block";
-            previewImg.src = URL.createObjectURL(file);
-            previewName.textContent = resp.filename;
-            previewDimensions.textContent = `${resp.width} × ${resp.height}px (${resp.size_kb} KB)`;
-
+            if (uploadProgressWrapper) uploadProgressWrapper.style.display = "none";
+            previewName.textContent = resp2.filename || filename;
+            if (resp2.width && resp2.height) {
+              previewDimensions.textContent = `${resp2.width} × ${resp2.height}px (${resp2.size_kb} KB)`;
+            }
             stepUpload.classList.add("completed");
-            stepQuality.classList.add("active");
             btnExecute.disabled = false;
-            showToast("Image uploaded successfully! Ready for execution.", "success");
-          }, 300);
-        } catch (e) {
-          uploadProgressWrapper.style.display = "none";
-          uploadedPreview.style.display = "block";
-          previewImg.src = URL.createObjectURL(file);
-          btnExecute.disabled = false;
-          showToast("Image loaded in preview.", "info");
+            showToast("Image uploaded via fallback! Running detection...", "success");
+
+            // Automatically trigger detection pipeline
+            runPipelineExecution(false);
+          }, 250);
+          return;
+        } catch (b64Err) {
+          console.error("Base64 upload also failed:", b64Err);
         }
-      } else {
-        uploadProgressWrapper.style.display = "none";
-        dropzoneContent.style.display = "block";
-        let errMsg = "Image upload failed.";
-        try {
-          const errResp = JSON.parse(xhr.responseText);
-          if (errResp.error) errMsg = errResp.error;
-        } catch(e) {
-          if (xhr.status === 0) {
-            errMsg = "Cannot connect to server. Ensure Flask backend is running on http://127.0.0.1:5000";
-          } else {
-            errMsg = `Upload failed (Status ${xhr.status}). Please check Flask server.`;
-          }
-        }
-        showToast(errMsg, "error");
       }
-    };
 
-    xhr.onerror = () => {
-      uploadProgressWrapper.style.display = "none";
-      dropzoneContent.style.display = "block";
-      showToast("Cannot connect to Flask server. Please make sure http://127.0.0.1:5000 is running.", "error");
-    };
-
-    xhr.send(formData);
+      // If network fails (e.g. running from file://), keep image loaded in browser!
+      if (uploadProgressWrapper) uploadProgressWrapper.style.display = "none";
+      stepUpload.classList.add("completed");
+      btnExecute.disabled = false;
+      showToast("Image loaded in browser. Running AI detection...", "info");
+      runPipelineExecution(false);
+    }
   }
 
   // Preloaded sample selection
@@ -418,17 +551,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function selectPreloadedSample(filename) {
     state.selectedFilename = filename;
-    dropzoneContent.style.display = "none";
-    uploadedPreview.style.display = "block";
+    state.selectedFile = null;
+    state.imageBase64 = null;
+
+    if (dropzone) dropzone.style.display = "none";
+    if (uploadedPreviewContainer) uploadedPreviewContainer.style.display = "block";
+    if (uploadedPreview) uploadedPreview.style.display = "block";
     previewImg.src = `${API_BASE}/api/test-image/${filename}`;
     previewName.textContent = filename;
-    previewDimensions.textContent = "Preloaded Test Image";
+    previewDimensions.textContent = "Preloaded Benchmark Sample";
 
     resetStepper();
     stepUpload.classList.add("completed");
-    stepQuality.classList.add("active");
     btnExecute.disabled = false;
     showToast(`Loaded preloaded sample: ${filename}`, "info");
+
+    // Automatically execute detection for instant visual verification
+    runPipelineExecution(false);
   }
 
   // Generate a blurred image directly on canvas to demonstrate image-quality rejection
@@ -458,9 +597,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Execute Pipeline (Execute Button)
-  btnExecute.addEventListener("click", async () => {
-    if (!state.selectedFilename || state.isProcessing) return;
+  // Core Pipeline Execution function (used both by auto-run and manual button)
+  async function runPipelineExecution(bypassQuality = false) {
+    if ((!state.selectedFilename && !state.imageBase64) || state.isProcessing) return;
 
     state.isProcessing = true;
     btnExecute.disabled = true;
@@ -472,19 +611,33 @@ document.addEventListener("DOMContentLoaded", () => {
     qualityVerdictBadge.className = "verdict-badge verdict-pending";
     qualityVerdictBadge.innerHTML = `<span>Inspecting Quality...</span>`;
 
+    // Show loading state in output area
+    if (emptyOutputState) emptyOutputState.style.display = "none";
+    if (imageOutputWrapper) imageOutputWrapper.style.display = "none";
+    if (outputLoadingState) outputLoadingState.style.display = "block";
+    if (btnBypassQuality) btnBypassQuality.style.display = "none";
+
     try {
       const res = await fetch(`${API_BASE}/api/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           filename: state.selectedFilename,
-          confidence_threshold: parseFloat(confThreshold.value)
+          image_base64: state.imageBase64 || null,
+          confidence_threshold: parseFloat(confThreshold.value),
+          bypass_quality: bypassQuality
         })
       });
 
       const data = await res.json();
-      renderExecutionResults(data);
+      renderExecutionResults(data, bypassQuality);
     } catch (err) {
+      if (outputLoadingState) outputLoadingState.style.display = "none";
+      if (imageOutputWrapper) imageOutputWrapper.style.display = "flex";
+      // Ensure image is still shown even if server had an error
+      if (previewImg && previewImg.src) {
+        processedImg.src = previewImg.src;
+      }
       showToast(`Execution error: ${err.message}`, "error");
     } finally {
       state.isProcessing = false;
@@ -494,10 +647,18 @@ document.addEventListener("DOMContentLoaded", () => {
         <span>Execute Backend Processing</span>
       `;
     }
+  }
+
+  // Execute Pipeline via manual button click
+  btnExecute.addEventListener("click", () => {
+    runPipelineExecution(false);
   });
 
-  // Render Pipeline Results
-  function renderExecutionResults(data) {
+  // Render Pipeline Results (Never hides output image!)
+  function renderExecutionResults(data, bypassed = false) {
+    if (outputLoadingState) outputLoadingState.style.display = "none";
+    if (emptyOutputState) emptyOutputState.style.display = "none";
+
     // 1. Quality Filter Inspection Render
     const qMetrics = data.quality_metrics || {};
     blurVal.textContent = qMetrics.blur_score !== undefined ? qMetrics.blur_score : "--";
@@ -508,8 +669,16 @@ document.addEventListener("DOMContentLoaded", () => {
     metricOver.classList.toggle("failed", !!qMetrics.is_overexposed);
     metricUnder.classList.toggle("failed", !!qMetrics.is_underexposed);
 
-    if (data.status === "REJECTED" || !data.quality_passed) {
-      // Image rejected by pre-filter!
+    // ALWAYS ensure output image wrapper is visible so the photo NEVER disappears!
+    imageOutputWrapper.style.display = "flex";
+    if (data.annotated_image_base64) {
+      processedImg.src = data.annotated_image_base64;
+    } else if (previewImg && previewImg.src) {
+      processedImg.src = previewImg.src;
+    }
+
+    if (data.status === "REJECTED") {
+      // Hard rejection (e.g. simulated blank blur canvas with no tower)
       stepQuality.classList.add("active");
       stepQuality.classList.remove("completed");
       stepDetect.classList.remove("active");
@@ -520,38 +689,41 @@ document.addEventListener("DOMContentLoaded", () => {
       qualityStatusText.textContent = "Unsuitable Image Filtered Out";
 
       qualityReasonBanner.style.display = "block";
-      qualityReasonBanner.textContent = data.reason || "Image rejected due to low quality.";
+      qualityReasonBanner.innerHTML = `<strong>Quality Filter Flagged:</strong> ${data.reason || "Image rejected due to low quality."}`;
 
-      emptyOutputState.style.display = "block";
-      emptyOutputState.innerHTML = `
-        <div class="empty-icon" style="color: var(--accent-rose);">
-          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-        </div>
-        <h4>Image Rejected Before Detection</h4>
-        <p style="color: #FDA4AF;">${data.reason}</p>
-      `;
-      imageOutputWrapper.style.display = "none";
+      if (btnBypassQuality) btnBypassQuality.style.display = "block";
       classAveragesSection.style.display = "none";
       detectionsTableSection.style.display = "none";
 
-      showToast("Quality filter rejected image. Object detection bypassed.", "error");
+      showToast("Quality filter flagged image. Click 'Run Detection Anyway' to bypass if desired.", "warning");
       return;
     }
 
-    // 2. Image Accepted!
+    // 2. Detection Completed (Passed or Flagged Notice)
     stepQuality.classList.add("completed");
     stepDetect.classList.add("completed");
     stepOutput.classList.add("active", "completed");
 
-    qualityVerdictBadge.className = "verdict-badge verdict-accepted";
-    qualityVerdictBadge.innerHTML = `<span>ACCEPTED & PASSED</span>`;
-    qualityStatusText.textContent = "Quality Check Passed";
-    qualityReasonBanner.style.display = "none";
+    if (data.status === "FLAGGED") {
+      qualityVerdictBadge.className = "verdict-badge verdict-warning";
+      qualityVerdictBadge.innerHTML = `<span>FLAGGED (Quality Warning)</span>`;
+      qualityStatusText.textContent = "Quality Audit Flagged";
+      qualityReasonBanner.style.display = "block";
+      qualityReasonBanner.innerHTML = `⚠️ <strong>Quality Audit Notice:</strong> ${data.reason || "Minor exposure/blur flag"} (Detection executed successfully).`;
+    } else if (bypassed) {
+      qualityVerdictBadge.className = "verdict-badge verdict-accepted";
+      qualityVerdictBadge.innerHTML = `<span>DETECTED (FILTER BYPASSED)</span>`;
+      qualityStatusText.textContent = "Quality Check Bypassed by User";
+      qualityReasonBanner.style.display = "block";
+      qualityReasonBanner.innerHTML = `<strong>Note:</strong> Quality filter flagged this image (${data.reason || "low quality"}), but object detection was executed on demand.`;
+    } else {
+      qualityVerdictBadge.className = "verdict-badge verdict-accepted";
+      qualityVerdictBadge.innerHTML = `<span>ACCEPTED & PASSED</span>`;
+      qualityStatusText.textContent = "Quality Check Passed";
+      qualityReasonBanner.style.display = "none";
+    }
 
-    // 3. Processed Image Display
-    emptyOutputState.style.display = "none";
-    imageOutputWrapper.style.display = "flex";
-    processedImg.src = data.annotated_image_base64;
+    if (btnBypassQuality) btnBypassQuality.style.display = "none";
 
     // 4. Average Confidence Score per Class
     classAveragesSection.style.display = "block";
@@ -593,7 +765,8 @@ document.addEventListener("DOMContentLoaded", () => {
       detectionsTableSection.style.display = "none";
     }
 
-    showToast(`Processing Complete! ${data.total_detections} tower(s) localized.`, "success");
+    const detCount = data.detections ? data.detections.length : (data.total_detections || 0);
+    showToast(`Processing Complete! ${detCount} tower component(s) localized.`, "success");
   }
 
   // -------------------------------------------------------------

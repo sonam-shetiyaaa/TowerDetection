@@ -1,0 +1,16 @@
+{
+  "mAP50": 0.6425,
+  "mAP50_95": 0.4328,
+  "precision": 0.4226,
+  "recall": 0.875,
+  "classes": [
+    "supporting_tower",
+    "monopole_tower"
+  ],
+  "model_path": "d:\\college\\TowerDetection\\model\\best.pt",
+  "exp_dir": "d:/college/TowerDetection/runs\\train_exp",
+  "artifacts": {
+    "confusion_matrix.png": "d:\\college\\TowerDetection\\model\\confusion_matrix.png",
+    "results.png": "d:\\college\\TowerDetection\\model\\results.png"
+  }
+}

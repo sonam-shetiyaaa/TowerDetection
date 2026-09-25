@@ -17,6 +17,7 @@ weights/
 # High-resolution image directories (>700MB causes HTTP 408 timeout on git push)
 dataset/images/
 dataset/raw_images/
+dataset/verification_previews/
 classified_towers/
 test_images/
 runs/

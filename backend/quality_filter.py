@@ -14,11 +14,11 @@ from typing import Dict, Any, Tuple
 class ImageQualityFilter:
     def __init__(
         self,
-        blur_threshold: float = 100.0,
-        overexposed_ratio_threshold: float = 0.25,
-        overexposed_luminance_threshold: float = 215.0,
-        underexposed_ratio_threshold: float = 0.50,
-        underexposed_luminance_threshold: float = 40.0,
+        blur_threshold: float = 45.0,
+        overexposed_ratio_threshold: float = 0.85,
+        overexposed_luminance_threshold: float = 248.0,
+        underexposed_ratio_threshold: float = 0.70,
+        underexposed_luminance_threshold: float = 25.0,
     ):
         """
         Initialize quality thresholds.

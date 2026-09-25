@@ -404,9 +404,11 @@
             <span class="card-subtitle">Supports JPG, PNG, High-Res Drone Photos</span>
           </div>
 
-          <!-- Drag and Drop Zone -->
-          <div class="upload-dropzone" id="dropzone">
-            <input type="file" id="fileInput" accept="image/*" class="file-input-hidden">
+          <!-- Hidden File Input -->
+          <input type="file" id="fileInput" accept="image/*,.jpg,.jpeg,.png,.webp,.bmp,.jfif,.JPG,.JPEG,.PNG" class="file-input-hidden">
+
+          <!-- Drag and Drop Zone (Visible when no image is loaded) -->
+          <div class="upload-dropzone" id="dropzone" title="Click to browse image or drag and drop">
             <div class="dropzone-content" id="dropzoneContent">
               <div class="dropzone-icon">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -416,27 +418,46 @@
                 </svg>
               </div>
               <p class="dropzone-text"><strong>Click to browse</strong> or drag & drop image here</p>
-              <span class="dropzone-hint">Organizer test images or raw tower files</span>
+              <span class="dropzone-hint">Supports JPG, PNG, WebP, Camera & Drone photos</span>
             </div>
+          </div>
 
-            <!-- Upload Progress Bar (Required by Problem Statement) -->
-            <div class="upload-progress-wrapper" id="uploadProgressWrapper" style="display: none;">
-              <div class="progress-info">
-                <span class="progress-title" id="uploadFileName">Uploading image...</span>
-                <span class="progress-pct" id="uploadProgressPct">0%</span>
-              </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="uploadProgressBar"></div>
-              </div>
+          <!-- Upload Progress Bar (Required by Problem Statement) -->
+          <div class="upload-progress-wrapper" id="uploadProgressWrapper" style="display: none; margin-top: 12px;">
+            <div class="progress-info">
+              <span class="progress-title" id="uploadFileName">Uploading image...</span>
+              <span class="progress-pct" id="uploadProgressPct">0%</span>
             </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="uploadProgressBar"></div>
+            </div>
+          </div>
 
-            <!-- Uploaded Preview -->
-            <div class="uploaded-preview" id="uploadedPreview" style="display: none;">
+          <!-- Dedicated Uploaded Preview Container (Completely outside dropzone to prevent click-bubbling) -->
+          <div class="uploaded-preview-card" id="uploadedPreviewContainer" style="display: none; margin-top: 12px;">
+            <div class="uploaded-preview" id="uploadedPreview" style="display: block; margin-top: 0;">
               <img id="previewImg" src="" alt="Uploaded preview">
               <div class="preview-overlay">
                 <span id="previewName" class="preview-filename"></span>
                 <span id="previewDimensions" class="preview-meta"></span>
               </div>
+            </div>
+            <div class="preview-action-row" style="display: flex; gap: 8px; margin-top: 10px;">
+              <button id="btnChangeImage" type="button" class="btn btn-secondary" style="flex: 1; padding: 9px 12px; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>Change Image</span>
+              </button>
+              <button id="btnClearImage" type="button" class="btn btn-outline" style="padding: 9px 14px; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-muted);" title="Remove and upload another">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Clear</span>
+              </button>
             </div>
           </div>
 
@@ -514,6 +535,9 @@
             </div>
 
             <div id="qualityReasonBanner" class="quality-banner" style="display: none;"></div>
+            <button id="btnBypassQuality" type="button" class="btn btn-warning" style="display: none; width: 100%; margin-top: 10px; padding: 10px 14px; font-size: 0.85rem; background: rgba(245, 158, 11, 0.15); border: 1px solid var(--accent-amber); color: var(--accent-amber); border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+              ⚡ Run Object Detection Anyway (Bypass Quality Filter)
+            </button>
           </div>
 
           <!-- Processed Image Output Display -->
@@ -527,8 +551,14 @@
                 </svg>
               </div>
               <h4>No Output Generated Yet</h4>
-              <p>Upload a test image and click <strong>Execute Backend Processing</strong> to see localized tower
-                bounding boxes and class metrics.</p>
+              <p>Upload a test image to automatically detect localized tower bounding boxes and class metrics.</p>
+            </div>
+
+            <!-- Pipeline Running Loading State -->
+            <div class="empty-state" id="outputLoadingState" style="display: none;">
+              <div class="spinner" style="width: 44px; height: 44px; border-width: 3.5px; margin: 0 auto 16px;"></div>
+              <h4>Analyzing Image Pipeline...</h4>
+              <p>Running quality verification and YOLOv8 tower localization</p>
             </div>
 
             <div class="image-output-wrapper" id="imageOutputWrapper" style="display: none;">

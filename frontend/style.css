@@ -1098,19 +1098,25 @@ body {
 }
 
 /* Uploaded Preview */
+.uploaded-preview-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
+  padding: 10px;
+}
+
 .uploaded-preview {
-  margin-top: 14px;
   position: relative;
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border-color);
-  max-height: 240px;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .uploaded-preview img {
   width: 100%;
-  height: 220px;
-  object-fit: cover;
+  height: 240px;
+  object-fit: contain;
   display: block;
 }
 
@@ -1329,6 +1335,13 @@ body {
   color: var(--accent-rose);
   border: 1px solid rgba(244, 63, 94, 0.4);
   box-shadow: 0 0 15px rgba(244, 63, 94, 0.2);
+}
+
+.verdict-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
 }
 
 /* Quality Audit Box */

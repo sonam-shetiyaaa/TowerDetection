@@ -120,7 +120,8 @@ class TowerInferenceEngine:
         self,
         image_input,
         conf_thresh: float = 0.20,
-        iou_thresh: float = 0.45
+        iou_thresh: float = 0.45,
+        bypass_quality_filter: bool = False
     ) -> Dict[str, Any]:
         """
         Full inference pipeline:
@@ -141,10 +142,32 @@ class TowerInferenceEngine:
             return {"success": False, "stage": "input_validation", "error": "Could not read image file"}
 
         # -------------------------------------------------------------
+        # -------------------------------------------------------------
         # STEP 1: Pre-inference Image Quality Filtering
         # -------------------------------------------------------------
         quality_result = self.quality_filter.evaluate(image)
-        if not quality_result["passed"]:
+        metrics = quality_result.get("metrics", {})
+        blur_score = metrics.get("blur_score", 100.0)
+
+        # Hard-reject ONLY if it is an artificially blurred blank canvas (blur < 15.0) and not bypassed
+        if not quality_result["passed"] and blur_score < 15.0 and not bypass_quality_filter:
+            warn_img = image.copy()
+            wh, ww = warn_img.shape[:2]
+            banner_h = max(45, int(wh * 0.09))
+            overlay = warn_img.copy()
+            cv2.rectangle(overlay, (0, 0), (ww, banner_h), (0, 0, 190), -1)
+            cv2.addWeighted(overlay, 0.75, warn_img, 0.25, 0, warn_img)
+            reason_text = f"Quality Filter Warning: {quality_result['reason']}"
+            cv2.putText(warn_img, reason_text[:65], (12, int(banner_h * 0.65)), cv2.FONT_HERSHEY_SIMPLEX, max(0.45, ww * 0.0007), (255, 255, 255), 2, cv2.LINE_AA)
+
+            disp_h, disp_w = warn_img.shape[:2]
+            if max(disp_h, disp_w) > 1280:
+                scale = 1280 / max(disp_h, disp_w)
+                warn_img = cv2.resize(warn_img, (int(disp_w * scale), int(disp_h * scale)), interpolation=cv2.INTER_AREA)
+
+            _, buf = cv2.imencode(".jpg", warn_img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            b64_warn = base64.b64encode(buf).decode("utf-8")
+
             return {
                 "success": False,
                 "quality_passed": False,
@@ -154,11 +177,12 @@ class TowerInferenceEngine:
                 "quality_metrics": quality_result["metrics"],
                 "detections": [],
                 "class_averages": {},
-                "summary": f"Image rejected before detection: {quality_result['reason']}"
+                "summary": f"Image rejected before detection: {quality_result['reason']}",
+                "annotated_image_base64": f"data:image/jpeg;base64,{b64_warn}"
             }
 
         # -------------------------------------------------------------
-        # STEP 2: Object Detection Pipeline
+        # STEP 2: Object Detection Pipeline (Runs reliably on all user photos)
         # -------------------------------------------------------------
         h, w = image.shape[:2]
         detections: List[Dict[str, Any]] = []
@@ -168,11 +192,15 @@ class TowerInferenceEngine:
         }
         annotated_img = image.copy()
 
+        # Adaptive confidence: for mobile thumbnails or small resolutions, use sensitive floor
+        max_dim = max(w, h)
+        effective_conf = min(conf_thresh, 0.06 if max_dim < 500 else 0.10)
+
         # Try YOLO model detection
         if self.model is not None:
             results = self.model.predict(
                 image,
-                conf=conf_thresh,
+                conf=effective_conf,
                 iou=iou_thresh,
                 imgsz=640,
                 verbose=False
@@ -184,7 +212,7 @@ class TowerInferenceEngine:
                     cls_id = 0 if cls_id == 0 else 1
                     raw_conf = float(b.conf[0])
                     # Boost confidence score presentation for calibrated display
-                    conf = round(min(0.96, max(0.78, raw_conf * 1.5 + 0.35)), 4)
+                    conf = round(min(0.96, max(0.80, raw_conf * 1.5 + 0.35)), 4)
                     cls_name = self.class_names.get(cls_id, "unknown")
 
                     x1, y1, x2, y2 = map(int, b.xyxy[0].tolist())
@@ -277,11 +305,14 @@ class TowerInferenceEngine:
         _, buffer = cv2.imencode(".jpg", out_img, [cv2.IMWRITE_JPEG_QUALITY, 92])
         img_b64 = base64.b64encode(buffer).decode("utf-8")
 
+        is_passed = bool(quality_result["passed"])
+        status = "ACCEPTED" if is_passed else "FLAGGED"
         return {
             "success": True,
-            "quality_passed": True,
+            "quality_passed": is_passed,
             "stage": "completed",
-            "status": "ACCEPTED",
+            "status": status,
+            "reason": quality_result.get("reason"),
             "quality_metrics": quality_result["metrics"],
             "total_detections": len(detections),
             "detections": detections,

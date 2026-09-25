@@ -1,0 +1,26 @@
+<annotation>
+	<folder>sample</folder>
+	<filename>img_a41a0209d87444fc.JPG</filename>
+	<path>C:\Users\VARSHA.H\Downloads\sample\sample\img_a41a0209d87444fc.JPG</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>5472</width>
+		<height>3648</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>Supporting tower</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>1441</xmin>
+			<ymin>1471</ymin>
+			<xmax>4293</xmax>
+			<ymax>2964</ymax>
+		</bndbox>
+	</object>
+</annotation>

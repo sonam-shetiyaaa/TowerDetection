@@ -1,0 +1,26 @@
+<annotation>
+	<folder>sample</folder>
+	<filename>img_8de203dea6e347ba.jpg</filename>
+	<path>C:\Users\VARSHA.H\Downloads\sample\sample\img_8de203dea6e347ba.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>120</width>
+		<height>260</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>Monopole Tower</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>40</xmin>
+			<ymin>41</ymin>
+			<xmax>110</xmax>
+			<ymax>220</ymax>
+		</bndbox>
+	</object>
+</annotation>

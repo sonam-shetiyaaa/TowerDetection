@@ -6,6 +6,7 @@ TowerAI Autonomous Vision Platform
 import os
 import glob
 import json
+import base64
 import threading
 import cv2
 import numpy as np
@@ -51,14 +52,20 @@ def index():
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Origin, Accept"
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
     return response
 
 
 @app.route("/<path:path>", methods=["OPTIONS"])
 @app.route("/", methods=["OPTIONS"])
 def handle_options(path=""):
-    return "", 204
+    resp = app.make_response(("", 204))
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Origin, Accept"
+    resp.headers["Access-Control-Allow-Private-Network"] = "true"
+    return resp
 
 
 # -------------------------------------------------------------------------
@@ -67,23 +74,44 @@ def handle_options(path=""):
 
 @app.route("/api/upload", methods=["POST", "OPTIONS"])
 def upload_image():
-    """Handles image upload and saves to test_images directory."""
+    """Handles image upload (multipart or base64) and saves to test_images directory."""
     if request.method == "OPTIONS":
         return "", 204
 
-    if "image" not in request.files:
-        return jsonify({"error": "No image file provided in upload"}), 400
+    import time
+    timestamp = int(time.time() * 1000)
 
-    file = request.files["image"]
-    original_name = file.filename or "upload.jpg"
-    safe_name = secure_filename(original_name)
-    if not safe_name:
-        import time
+    # 1. Handle multipart form-data upload
+    if "image" in request.files:
+        file = request.files["image"]
+        original_name = file.filename or f"upload_{timestamp}.jpg"
+        safe_name = secure_filename(original_name)
+        if not safe_name or safe_name in ["jpg", "png", "jpeg", "webp"]:
+            ext = os.path.splitext(original_name)[1] or ".jpg"
+            safe_name = f"upload_{timestamp}{ext}"
+
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
+        file.save(filepath)
+
+    # 2. Handle JSON base64 upload
+    elif request.is_json and ("image" in request.json or "image_base64" in request.json):
+        data = request.json
+        b64_str = data.get("image_base64") or data.get("image")
+        if "," in b64_str:
+            b64_str = b64_str.split(",", 1)[1]
+        try:
+            raw_bytes = base64.b64decode(b64_str)
+        except Exception as e:
+            return jsonify({"error": f"Invalid base64 encoding: {str(e)}"}), 400
+
+        original_name = data.get("filename", f"upload_{timestamp}.jpg")
         ext = os.path.splitext(original_name)[1] or ".jpg"
-        safe_name = f"upload_{int(time.time())}{ext}"
-
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
-    file.save(filepath)
+        safe_name = f"upload_{timestamp}{ext}"
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
+        with open(filepath, "wb") as f:
+            f.write(raw_bytes)
+    else:
+        return jsonify({"error": "No image file provided in upload"}), 400
 
     # Read image to obtain dimensions and preview
     img = cv2.imread(filepath)
@@ -112,12 +140,32 @@ def execute_pipeline():
     """
     Executes the required flow:
     Upload -> Image Quality Check -> Object Detection -> Average Confidence Scores -> Annotated Image
+    Supports both saved filename and direct base64 image data.
     """
     data = request.json or {}
     filename = data.get("filename")
+    image_base64 = data.get("image_base64")
+    conf_thresh = float(data.get("confidence_threshold", 0.20))
+    bypass_quality = bool(data.get("bypass_quality", False))
+
+    # If direct base64 provided
+    if image_base64:
+        if "," in image_base64:
+            image_base64 = image_base64.split(",", 1)[1]
+        try:
+            raw_bytes = base64.b64decode(image_base64)
+            nparr = np.frombuffer(raw_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if img is not None:
+                result = inference_engine.process_image(
+                    img, conf_thresh=conf_thresh, bypass_quality_filter=bypass_quality
+                )
+                return jsonify(result)
+        except Exception as e:
+            print(f"Direct base64 decode error: {e}")
 
     if not filename:
-        return jsonify({"error": "No filename specified for execution"}), 400
+        return jsonify({"error": "No filename or image data specified for execution"}), 400
 
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     if not os.path.exists(filepath):
@@ -126,9 +174,9 @@ def execute_pipeline():
         if not os.path.exists(filepath):
             return jsonify({"error": f"Image file {filename} not found"}), 404
 
-    conf_thresh = float(data.get("confidence_threshold", 0.20))
-    result = inference_engine.process_image(filepath, conf_thresh=conf_thresh)
-
+    result = inference_engine.process_image(
+        filepath, conf_thresh=conf_thresh, bypass_quality_filter=bypass_quality
+    )
     return jsonify(result)
 
 
@@ -161,12 +209,15 @@ def import_dataset():
 @app.route("/api/review/list", methods=["GET"])
 def list_review_images():
     """Lists raw images and their current annotation status."""
-    extensions = ("*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG")
-    files = []
+    extensions = ("*.jpg", "*.jpeg", "*.png", "*.webp")
+    unique_files = {}
     for ext in extensions:
-        files.extend(glob.glob(os.path.join(dataset_mgr.raw_images_dir, ext)))
+        for p in glob.glob(os.path.join(dataset_mgr.raw_images_dir, ext)):
+            norm = os.path.normcase(os.path.abspath(p))
+            if norm not in unique_files:
+                unique_files[norm] = p
 
-    files.sort(key=lambda x: os.path.basename(x))
+    files = sorted(list(unique_files.values()), key=lambda x: os.path.basename(x))
     candidates_path = os.path.join(dataset_mgr.annotations_dir, "candidates.json")
     candidates = {}
     if os.path.exists(candidates_path):
