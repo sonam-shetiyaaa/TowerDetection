@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TowerAI - Tower Component Detection & Visualization | ELECTROHACK 4.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Header -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 22 22 22 12 2"></polygon>
+          <line x1="12" y1="2" x2="12" y2="22"></line>
+          <line x1="7" y1="12" x2="17" y2="12"></line>
+          <line x1="9.5" y1="7" x2="14.5" y2="7"></line>
+          <line x1="4.5" y1="17" x2="19.5" y2="17"></line>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">TowerAI <span class="badge-ps">ELECTROHACK 4.0</span></span>
+        <span class="brand-sub">Nemilink & KSIT • Problem Statement 1</span>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="inferenceTab" id="tabBtnInference">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+        </svg>
+        <span>Live Detection Dashboard</span>
+      </button>
+      <button class="nav-tab" data-tab="studioTab" id="tabBtnStudio">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+          <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </svg>
+        <span>Dataset & Auto-Label Studio</span>
+      </button>
+      <button class="nav-tab" data-tab="evalTab" id="tabBtnEval">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 20V10"></path>
+          <path d="M12 20V4"></path>
+          <path d="M6 20v-6"></path>
+        </svg>
+        <span>Model Evaluation & Metrics</span>
+      </button>
+    </nav>
+
+    <div class="nav-status">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-label" id="systemStatusLabel">System Ready</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: INFERENCE & DASHBOARD (Problem Statement Phase 3 Core) -->
+    <!-- ========================================================================= -->
+    <section id="inferenceTab" class="tab-pane active">
+      <!-- Pipeline Stepper -->
+      <div class="stepper-card">
+        <div class="stepper-track">
+          <div class="step-item" id="stepUpload">
+            <div class="step-icon">1</div>
+            <div class="step-meta">
+              <span class="step-title">Upload Image</span>
+              <span class="step-desc">Progress indicator</span>
+            </div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-item" id="stepQuality">
+            <div class="step-icon">2</div>
+            <div class="step-meta">
+              <span class="step-title">Quality Filter</span>
+              <span class="step-desc">Blur & Exposure check</span>
+            </div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-item" id="stepDetect">
+            <div class="step-icon">3</div>
+            <div class="step-meta">
+              <span class="step-title">Object Detection</span>
+              <span class="step-desc">Supporting vs Monopole</span>
+            </div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-item" id="stepOutput">
+            <div class="step-icon">4</div>
+            <div class="step-meta">
+              <span class="step-title">Output & Analytics</span>
+              <span class="step-desc">Class averages & boxes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Left: Upload & Controls -->
+        <div class="card control-card">
+          <div class="card-header">
+            <h3>Input Image Selection</h3>
+            <span class="card-subtitle">Supports JPG, PNG, High-Res Drone Photos</span>
+          </div>
+
+          <!-- Drag and Drop Zone -->
+          <div class="upload-dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept="image/*" class="file-input-hidden">
+            <div class="dropzone-content" id="dropzoneContent">
+              <div class="dropzone-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="dropzone-text"><strong>Click to browse</strong> or drag & drop image here</p>
+              <span class="dropzone-hint">Organizer test images or raw tower files</span>
+            </div>
+
+            <!-- Upload Progress Bar (Required by Problem Statement) -->
+            <div class="upload-progress-wrapper" id="uploadProgressWrapper" style="display: none;">
+              <div class="progress-info">
+                <span class="progress-title" id="uploadFileName">Uploading image...</span>
+                <span class="progress-pct" id="uploadProgressPct">0%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="uploadProgressBar"></div>
+              </div>
+            </div>
+
+            <!-- Uploaded Preview -->
+            <div class="uploaded-preview" id="uploadedPreview" style="display: none;">
+              <img id="previewImg" src="" alt="Uploaded preview">
+              <div class="preview-overlay">
+                <span id="previewName" class="preview-filename"></span>
+                <span id="previewDimensions" class="preview-meta"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Samples Selector -->
+          <div class="samples-selector">
+            <label class="section-label">Or Pick a Preloaded Sample:</label>
+            <div class="sample-chips" id="sampleChips">
+              <!-- Dynamically populated sample chips -->
+              <button class="sample-chip" data-sample="img_00351f186c1f4a42.jpg">Sample 1 (Lattice)</button>
+              <button class="sample-chip" data-sample="img_0e7929a4069c45bd.jpg">Sample 2 (Monopole)</button>
+              <button class="sample-chip" data-sample="img_1025992249b44a03.jpg">Sample 3 (Tower)</button>
+              <button class="sample-chip sample-chip-blur" data-sample="blur_sample">Simulate Blur</button>
+            </div>
+          </div>
+
+          <!-- Controls & Execute Button -->
+          <div class="controls-panel">
+            <div class="slider-group">
+              <div class="slider-header">
+                <label for="confThreshold">Detection Confidence Threshold:</label>
+                <span id="confValue" class="slider-val">0.25</span>
+              </div>
+              <input type="range" id="confThreshold" min="0.10" max="0.90" step="0.05" value="0.25" class="slider">
+            </div>
+
+            <button id="btnExecute" class="btn btn-primary btn-execute" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>Execute Backend Processing</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Results & Analytics -->
+        <div class="card results-card">
+          <div class="card-header">
+            <div class="results-header-left">
+              <h3>Detection & Quality Output</h3>
+              <span class="card-subtitle">Real-time image inspection and object localization</span>
+            </div>
+            <div id="qualityVerdictBadge" class="verdict-badge verdict-pending">
+              <span>Awaiting Execution</span>
+            </div>
+          </div>
+
+          <!-- Quality Filtering Card (Phase 2 Requirement) -->
+          <div class="quality-audit-box" id="qualityBox">
+            <div class="quality-header">
+              <span class="quality-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                Image Quality Filter Audit
+              </span>
+              <span id="qualityStatusText" class="quality-status-text">Pending inspection</span>
+            </div>
+
+            <div class="quality-metrics-grid">
+              <div class="metric-card" id="metricBlur">
+                <div class="metric-label">Laplacian Blur Score</div>
+                <div class="metric-value" id="blurVal">--</div>
+                <div class="metric-sub" id="blurSub">Min threshold: 100.0</div>
+              </div>
+              <div class="metric-card" id="metricOver">
+                <div class="metric-label">Overexposure Ratio</div>
+                <div class="metric-value" id="overVal">--</div>
+                <div class="metric-sub" id="overSub">Max allowed: 25.0%</div>
+              </div>
+              <div class="metric-card" id="metricUnder">
+                <div class="metric-label">Underexposure Ratio</div>
+                <div class="metric-value" id="underVal">--</div>
+                <div class="metric-sub" id="underSub">Max allowed: 50.0%</div>
+              </div>
+            </div>
+
+            <div id="qualityReasonBanner" class="quality-banner" style="display: none;"></div>
+          </div>
+
+          <!-- Processed Image Output Display -->
+          <div class="output-display-area" id="outputArea">
+            <div class="empty-state" id="emptyOutputState">
+              <div class="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <h4>No Output Generated Yet</h4>
+              <p>Upload a test image and click <strong>Execute Backend Processing</strong> to see localized tower
+                bounding boxes and class metrics.</p>
+            </div>
+
+            <div class="image-output-wrapper" id="imageOutputWrapper" style="display: none;">
+              <img id="processedImg" src="" alt="Processed Object Detection Output" class="processed-image">
+            </div>
+          </div>
+
+          <!-- Average Confidence Score per Class (Required by Problem Statement) -->
+          <div class="class-averages-section" id="classAveragesSection" style="display: none;">
+            <h4 class="section-heading">Average Confidence Score per Detected Class</h4>
+            <div class="averages-grid">
+              <div class="class-avg-card card-supporting">
+                <div class="class-color-indicator dot-supporting"></div>
+                <div class="class-avg-info">
+                  <span class="class-name">supporting_tower</span>
+                  <span class="class-avg-number" id="avgConfSupporting">--%</span>
+                </div>
+                <div class="class-count-badge" id="countSupporting">0 detected</div>
+              </div>
+
+              <div class="class-avg-card card-monopole">
+                <div class="class-color-indicator dot-monopole"></div>
+                <div class="class-avg-info">
+                  <span class="class-name">monopole_tower</span>
+                  <span class="class-avg-number" id="avgConfMonopole">--%</span>
+                </div>
+                <div class="class-count-badge" id="countMonopole">0 detected</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detections Table -->
+          <div class="detections-table-section" id="detectionsTableSection" style="display: none;">
+            <h4 class="section-heading">Detailed Detection Localization</h4>
+            <div class="table-container">
+              <table class="detections-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Class</th>
+                    <th>Confidence</th>
+                    <th>Bounding Box [X1, Y1, X2, Y2]</th>
+                  </tr>
+                </thead>
+                <tbody id="detectionsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: DATASET & AUTO-LABEL STUDIO (Problem Statement Phase 1) -->
+    <!-- ========================================================================= -->
+    <section id="studioTab" class="tab-pane">
+      <div class="studio-layout">
+        <!-- Studio Left: Image Browser & Stats -->
+        <div class="card studio-sidebar">
+          <div class="card-header">
+            <h3>Dataset Management</h3>
+            <span class="card-subtitle">Phase 1 Preparation & Verification</span>
+          </div>
+
+          <!-- Dataset Statistics Counter -->
+          <div class="dataset-stats-card">
+            <div class="stat-row">
+              <span class="stat-label">Total Raw Images:</span>
+              <span class="stat-val" id="statTotalImgs">124</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Annotated Images:</span>
+              <span class="stat-val highlight" id="statAnnotatedImgs">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">supporting_tower boxes:</span>
+              <span class="stat-val" id="statSupportingCount">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">monopole_tower boxes:</span>
+              <span class="stat-val" id="statMonopoleCount">0</span>
+            </div>
+          </div>
+
+          <!-- Batch Actions -->
+          <div class="studio-actions">
+            <button id="btnRunBatchAutoLabel" class="btn btn-secondary btn-full">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                </path>
+              </svg>
+              <span>Auto-Label Entire Dataset</span>
+            </button>
+            <button id="btnBuildDatasetSplit" class="btn btn-primary btn-full">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <polyline points="17 11 19 13 23 9"></polyline>
+              </svg>
+              <span>Build Train/Val Split & data.yaml</span>
+            </button>
+          </div>
+
+          <!-- Image List Selector -->
+          <div class="image-list-header">
+            <span class="list-title">Raw Image Gallery</span>
+            <span class="list-counter" id="galleryCounter">0 images</span>
+          </div>
+          <div class="studio-image-list" id="studioImageList"></div>
+        </div>
+
+        <!-- Studio Right: Interactive Review Canvas -->
+        <div class="card studio-viewer">
+          <div class="card-header">
+            <div class="viewer-meta">
+              <h3 id="currentReviewFileName">Select an image to review</h3>
+              <span class="card-subtitle" id="currentReviewFileStatus">Status: Pending review</span>
+            </div>
+            <div class="viewer-nav">
+              <button id="btnPrevImage" class="btn btn-icon" title="Previous Image">◀</button>
+              <span id="imageNavIndex" class="nav-index-text">1 / 124</span>
+              <button id="btnNextImage" class="btn btn-icon" title="Next Image">▶</button>
+            </div>
+          </div>
+
+          <!-- Canvas / Image Container -->
+          <div class="canvas-wrapper" id="canvasWrapper">
+            <img id="reviewImgElement" src="" alt="Review image" class="review-image">
+            <div id="bboxOverlay" class="bbox-overlay"></div>
+          </div>
+
+          <!-- Label Review Controls -->
+          <div class="review-controls-bar">
+            <div class="active-labels-list" id="activeLabelsList">
+              <span class="no-labels-text">No bounding boxes for this image.</span>
+            </div>
+            <div class="review-action-btns">
+              <button id="btnToggleClass" class="btn btn-outline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="16 3 21 3 21 8"></polyline>
+                  <line x1="4" y1="20" x2="21" y2="3"></line>
+                  <polyline points="21 16 21 21 16 21"></polyline>
+                  <line x1="15" y1="15" x2="21" y2="21"></line>
+                  <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+                <span>Toggle Class (Supporting ↔ Monopole)</span>
+              </button>
+              <button id="btnApproveLabel" class="btn btn-success">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Approve & Save Label</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: MODEL EVALUATION & EVIDENCE (Problem Statement Phase 2) -->
+    <!-- ========================================================================= -->
+    <section id="evalTab" class="tab-pane">
+      <div class="eval-layout">
+        <!-- Training Trigger & Status Card -->
+        <div class="card train-control-card">
+          <div class="card-header">
+            <h3>YOLOv8 Model Training Pipeline</h3>
+            <span class="card-subtitle">Train on prepared tower dataset with automated evaluation</span>
+          </div>
+
+          <div class="train-form-grid">
+            <div class="form-group">
+              <label for="trainEpochs">Training Epochs:</label>
+              <input type="number" id="trainEpochs" min="5" max="50" value="15" class="input-number">
+            </div>
+            <div class="form-group">
+              <label for="trainBatch">Batch Size:</label>
+              <input type="number" id="trainBatch" min="2" max="16" value="4" class="input-number">
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button id="btnStartTrain" class="btn btn-primary btn-full">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span>Start Model Training</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Training Progress Bar -->
+          <div id="trainProgressBox" class="train-progress-box" style="display: none;">
+            <div class="progress-info">
+              <span id="trainStatusMessage">Training in progress...</span>
+              <span id="trainProgressPercent">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="trainProgressBar" class="progress-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Overview Cards -->
+        <div class="metrics-summary-grid">
+          <div class="metric-badge-card">
+            <span class="metric-title">mAP @ 0.50</span>
+            <span class="metric-hero" id="metricMap50">--</span>
+            <span class="metric-desc">Mean Average Precision at IoU 0.50</span>
+          </div>
+          <div class="metric-badge-card">
+            <span class="metric-title">mAP @ 0.50:0.95</span>
+            <span class="metric-hero" id="metricMap5095">--</span>
+            <span class="metric-desc">Overall Multi-IoU Detection Precision</span>
+          </div>
+          <div class="metric-badge-card">
+            <span class="metric-title">Precision</span>
+            <span class="metric-hero" id="metricPrecision">--</span>
+            <span class="metric-desc">Detection positive predictive value</span>
+          </div>
+          <div class="metric-badge-card">
+            <span class="metric-title">Recall</span>
+            <span class="metric-hero" id="metricRecall">--</span>
+            <span class="metric-desc">Ground-truth detection recall</span>
+          </div>
+        </div>
+
+        <!-- Visual Technical Evidence (Confusion Matrix & Curves) -->
+        <div class="card visual-evidence-card">
+          <div class="card-header">
+            <h3>Technical Evaluation Evidence (Phase 2 Requirement)</h3>
+            <span class="card-subtitle">Artifacts to present to judges during project evaluation</span>
+          </div>
+
+          <div class="evidence-gallery" id="evidenceGallery">
+            <div class="evidence-item">
+              <h4>Confusion Matrix</h4>
+              <div class="evidence-img-box">
+                <img id="imgConfusionMatrix" src="/api/model/artifacts/confusion_matrix.png" alt="Confusion Matrix"
+                  onerror="this.src='https://placehold.co/600x400/111827/4b5563?text=Confusion+Matrix+Generated+After+Training'">
+              </div>
+            </div>
+            <div class="evidence-item">
+              <h4>Training Loss & Metric Curves</h4>
+              <div class="evidence-img-box">
+                <img id="imgResultsCurves" src="/api/model/artifacts/results.png" alt="Training Curves"
+                  onerror="this.src='https://placehold.co/600x400/111827/4b5563?text=Training+Loss+Curves+Generated+After+Training'">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

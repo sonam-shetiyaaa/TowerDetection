@@ -1,0 +1,6 @@
+names:
+  0: supporting_tower
+  1: monopole_tower
+path: d:/college/TowerDetection/dataset
+train: images/train
+val: images/val
