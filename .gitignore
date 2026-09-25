@@ -11,8 +11,18 @@ __pycache__/
 *.so
 
 # Large binary weights (>100MB rejected by GitHub)
-weights/clip/
+weights/
 *.pt.tmp
+
+# High-resolution image directories (>700MB causes HTTP 408 timeout on git push)
+dataset/images/
+dataset/raw_images/
+classified_towers/
+test_images/
+runs/
+
+# Cache files
+*.cache
 
 # IDE / System files
 .vscode/

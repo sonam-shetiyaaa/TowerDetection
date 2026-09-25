@@ -47,33 +47,59 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+    return response
+
+
+@app.route("/<path:path>", methods=["OPTIONS"])
+@app.route("/", methods=["OPTIONS"])
+def handle_options(path=""):
+    return "", 204
+
+
 # -------------------------------------------------------------------------
 # INFERENCE & DASHBOARD ENDPOINTS (Phase 2 & Phase 3)
 # -------------------------------------------------------------------------
 
-@app.route("/api/upload", methods=["POST"])
+@app.route("/api/upload", methods=["POST", "OPTIONS"])
 def upload_image():
     """Handles image upload and saves to test_images directory."""
+    if request.method == "OPTIONS":
+        return "", 204
+
     if "image" not in request.files:
         return jsonify({"error": "No image file provided in upload"}), 400
 
     file = request.files["image"]
-    if file.filename == "":
-        return jsonify({"error": "Empty filename"}), 400
+    original_name = file.filename or "upload.jpg"
+    safe_name = secure_filename(original_name)
+    if not safe_name:
+        import time
+        ext = os.path.splitext(original_name)[1] or ".jpg"
+        safe_name = f"upload_{int(time.time())}{ext}"
 
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
     file.save(filepath)
 
     # Read image to obtain dimensions and preview
     img = cv2.imread(filepath)
     if img is None:
-        return jsonify({"error": "Uploaded file is not a valid image"}), 400
+        from PIL import Image
+        try:
+            pil_img = Image.open(filepath).convert("RGB")
+            w, h = pil_img.size
+        except Exception:
+            return jsonify({"error": "Uploaded file is not a valid image format"}), 400
+    else:
+        h, w = img.shape[:2]
 
-    h, w = img.shape[:2]
     return jsonify({
         "success": True,
-        "filename": filename,
+        "filename": safe_name,
         "filepath": filepath,
         "width": w,
         "height": h,

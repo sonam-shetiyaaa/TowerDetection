@@ -19,7 +19,13 @@ from backend.quality_filter import ImageQualityFilter
 
 
 class TowerInferenceEngine:
-    def __init__(self, model_path: str = "model/best.pt", fallback_model: str = "yolov8s-worldv2.pt"):
+    def __init__(self, model_path: str = None, fallback_model: str = None):
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if model_path is None:
+            model_path = os.path.join(base_dir, "model", "best.pt")
+        if fallback_model is None:
+            fallback_model = os.path.join(base_dir, "yolov8s-worldv2.pt")
+
         self.quality_filter = ImageQualityFilter()
         self.class_names = {
             0: "supporting_tower",
