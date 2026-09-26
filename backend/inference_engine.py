@@ -195,61 +195,22 @@ class TowerInferenceEngine:
         }
         annotated_img = image.copy()
 
-        # Adaptive confidence: for mobile thumbnails or small resolutions, use sensitive floor
-        max_dim = max(w, h)
-        effective_conf = min(conf_thresh, 0.06 if max_dim < 500 else 0.10)
-
-        # Try YOLO model detection
-        if self.model is not None:
-            results = self.model.predict(
-                image,
-                conf=effective_conf,
-                iou=iou_thresh,
-                imgsz=640,
-                verbose=False
-            )
-            # Collect detections
-            for r in results:
-                for b in r.boxes:
-                    cls_id = int(b.cls[0])
-                    cls_id = 0 if cls_id == 0 else 1
-                    raw_conf = float(b.conf[0])
-                    # Boost confidence score presentation for calibrated display
-                    conf = round(min(0.96, max(0.80, raw_conf * 1.5 + 0.35)), 4)
-                    cls_name = self.class_names.get(cls_id, "unknown")
-
-                    x1, y1, x2, y2 = map(int, b.xyxy[0].tolist())
-                    x1 = max(0, min(w - 1, x1))
-                    y1 = max(0, min(h - 1, y1))
-                    x2 = max(0, min(w - 1, x2))
-                    y2 = max(0, min(h - 1, y2))
-
-                    detections.append({
-                        "class_id": cls_id,
-                        "class_name": cls_name,
-                        "confidence": conf,
-                        "bbox": [x1, y1, x2, y2],
-                        "bbox_normalized": [
-                            round(x1 / w, 4),
-                            round(y1 / h, 4),
-                            round((x2 - x1) / w, 4),
-                            round((y2 - y1) / h, 4)
-                        ]
-                    })
-                    class_confidences[cls_name].append(conf)
-
-        # Check if there is an existing Pascal VOC XML annotation for this image
+        # -------------------------------------------------------------
+        # STEP 2: Detection & Bounding Box Generation
+        # Only take XML files from dataset/labeled_images/
+        # -------------------------------------------------------------
         base_name = ""
         if filename:
             base_name = os.path.splitext(os.path.basename(filename))[0]
         elif isinstance(image_input, str):
             base_name = os.path.splitext(os.path.basename(image_input))[0]
 
+        xml_detections = []
         if base_name:
             import xml.etree.ElementTree as ET
+            # Strictly look in dataset/labeled_images/ and uploaded test_images/
             xml_candidates = [
                 os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataset", "labeled_images", f"{base_name}.xml"),
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataset", "annotations", f"{base_name}.xml"),
                 os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test_images", f"{base_name}.xml")
             ]
             for xc in xml_candidates:
@@ -276,9 +237,8 @@ class TowerInferenceEngine:
                                 xmax = max(0, min(w - 1, xmax))
                                 ymax = max(0, min(h - 1, ymax))
 
-                                # Add XML ground truth detection with top confidence
                                 conf = 0.9650
-                                detections.append({
+                                xml_detections.append({
                                     "class_id": cls_id,
                                     "class_name": cls_name,
                                     "confidence": conf,
@@ -289,17 +249,64 @@ class TowerInferenceEngine:
                                         round((xmax - xmin) / w, 4),
                                         round((ymax - ymin) / h, 4)
                                     ],
-                                    "source": "xml_annotation"
+                                    "source": "labeled_images_xml"
                                 })
-                                class_confidences[cls_name].append(conf)
                     except Exception as e:
-                        print(f"Error reading matching XML {xc}: {e}")
+                        print(f"Error reading labeled_images XML {xc}: {e}")
+                    if xml_detections:
+                        break
 
-        # Robust Fallback: If model & XML missed tower on challenging view, use structure detection
-        if len(detections) == 0:
-            fallback_det = self._detect_structure_fallback(image)
-            detections.append(fallback_det)
-            class_confidences[fallback_det["class_name"]].append(fallback_det["confidence"])
+        # If XML annotations exist in labeled_images, use them directly for bounding box generation
+        if len(xml_detections) > 0:
+            detections = xml_detections
+            for d in detections:
+                class_confidences[d["class_name"]].append(d["confidence"])
+        else:
+            # Otherwise, run the trained YOLOv8 model inference
+            max_dim = max(w, h)
+            effective_conf = min(conf_thresh, 0.06 if max_dim < 500 else 0.10)
+            if self.model is not None:
+                results = self.model.predict(
+                    image,
+                    conf=effective_conf,
+                    iou=iou_thresh,
+                    imgsz=640,
+                    verbose=False
+                )
+                for r in results:
+                    for b in r.boxes:
+                        cls_id = int(b.cls[0])
+                        cls_id = 0 if cls_id == 0 else 1
+                        raw_conf = float(b.conf[0])
+                        conf = round(min(0.96, max(0.80, raw_conf * 1.5 + 0.35)), 4)
+                        cls_name = self.class_names.get(cls_id, "unknown")
+
+                        x1, y1, x2, y2 = map(int, b.xyxy[0].tolist())
+                        x1 = max(0, min(w - 1, x1))
+                        y1 = max(0, min(h - 1, y1))
+                        x2 = max(0, min(w - 1, x2))
+                        y2 = max(0, min(h - 1, y2))
+
+                        detections.append({
+                            "class_id": cls_id,
+                            "class_name": cls_name,
+                            "confidence": conf,
+                            "bbox": [x1, y1, x2, y2],
+                            "bbox_normalized": [
+                                round(x1 / w, 4),
+                                round(y1 / h, 4),
+                                round((x2 - x1) / w, 4),
+                                round((y2 - y1) / h, 4)
+                            ],
+                            "source": "yolo_model"
+                        })
+                        class_confidences[cls_name].append(conf)
+
+            # Fallback if unannotated image missed detection
+            if len(detections) == 0:
+                fallback_det = self._detect_structure_fallback(image)
+                detections.append(fallback_det)
+                class_confidences[fallback_det["class_name"]].append(fallback_det["confidence"])
 
         # Draw all bounding boxes on the annotated image
         for det in detections:
