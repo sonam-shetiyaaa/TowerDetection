@@ -8,6 +8,7 @@ import sys
 import glob
 import json
 import base64
+import shutil
 import threading
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -195,7 +196,10 @@ def execute_pipeline():
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             if img is not None:
                 result = inference_engine.process_image(
-                    img, conf_thresh=conf_thresh, bypass_quality_filter=bypass_quality
+                    img,
+                    conf_thresh=conf_thresh,
+                    bypass_quality_filter=bypass_quality,
+                    filename=filename
                 )
                 return jsonify(result)
         except Exception as e:
@@ -212,7 +216,10 @@ def execute_pipeline():
             return jsonify({"error": f"Image file {filename} not found"}), 404
 
     result = inference_engine.process_image(
-        filepath, conf_thresh=conf_thresh, bypass_quality_filter=bypass_quality
+        filepath,
+        conf_thresh=conf_thresh,
+        bypass_quality_filter=bypass_quality,
+        filename=filename
     )
     return jsonify(result)
 

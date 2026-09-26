@@ -121,7 +121,8 @@ class TowerInferenceEngine:
         image_input,
         conf_thresh: float = 0.20,
         iou_thresh: float = 0.45,
-        bypass_quality_filter: bool = False
+        bypass_quality_filter: bool = False,
+        filename: str = None
     ) -> Dict[str, Any]:
         """
         Full inference pipeline:
@@ -133,6 +134,8 @@ class TowerInferenceEngine:
         """
         if isinstance(image_input, str):
             image = cv2.imread(image_input)
+            if not filename:
+                filename = os.path.basename(image_input)
         elif isinstance(image_input, np.ndarray):
             image = image_input.copy()
         else:
@@ -237,7 +240,9 @@ class TowerInferenceEngine:
 
         # Check if there is an existing Pascal VOC XML annotation for this image
         base_name = ""
-        if isinstance(image_input, str):
+        if filename:
+            base_name = os.path.splitext(os.path.basename(filename))[0]
+        elif isinstance(image_input, str):
             base_name = os.path.splitext(os.path.basename(image_input))[0]
 
         if base_name:
