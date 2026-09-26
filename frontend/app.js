@@ -941,6 +941,38 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {}
   }
 
+  // Sync Pascal VOC XML Annotations
+  const btnSyncXml = document.getElementById("btnSyncXml");
+  if (btnSyncXml) {
+    btnSyncXml.addEventListener("click", async () => {
+      btnSyncXml.disabled = true;
+      btnSyncXml.innerHTML = `<span class="spinner"></span> <span>Syncing Pascal VOC XMLs...</span>`;
+      try {
+        const res = await fetch(`${API_BASE}/api/dataset/sync-xml`, { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Successfully converted & synchronized ${data.synced_count} XML annotations!`, "success");
+          loadReviewImages();
+          refreshDatasetStats();
+        } else {
+          showToast("Failed to sync XML annotations", "error");
+        }
+      } catch (err) {
+        showToast(`Sync error: ${err.message}`, "error");
+      } finally {
+        btnSyncXml.disabled = false;
+        btnSyncXml.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>Sync Pascal VOC XMLs</span>
+        `;
+      }
+    });
+  }
+
   // Run Batch Auto-Labeling
   btnRunBatchAutoLabel.addEventListener("click", async () => {
     btnRunBatchAutoLabel.disabled = true;

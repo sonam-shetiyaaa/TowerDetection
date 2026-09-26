@@ -206,10 +206,23 @@ def import_dataset():
     })
 
 
+@app.route("/api/dataset/sync-xml", methods=["POST", "GET"])
+def sync_xml_annotations():
+    """Converts any Pascal VOC XML annotations to YOLO format."""
+    count = dataset_mgr.sync_all_xml_annotations()
+    stats = dataset_mgr.compute_statistics()
+    return jsonify({
+        "success": True,
+        "synced_count": count,
+        "stats": stats
+    })
+
+
 @app.route("/api/review/list", methods=["GET"])
 def list_review_images():
     """Lists raw images and their current annotation status."""
-    extensions = ("*.jpg", "*.jpeg", "*.png", "*.webp")
+    dataset_mgr.sync_all_xml_annotations()
+    extensions = ("*.jpg", "*.jpeg", "*.png", "*.webp", "*.JPG", "*.JPEG", "*.PNG")
     unique_files = {}
     for ext in extensions:
         for p in glob.glob(os.path.join(dataset_mgr.raw_images_dir, ext)):
@@ -230,11 +243,11 @@ def list_review_images():
     items = []
     for f in files:
         base = os.path.splitext(os.path.basename(f))[0]
-        txt_path = os.path.join(dataset_mgr.annotations_dir, f"{base}.txt")
-        has_annotation = os.path.exists(txt_path)
+        labels = dataset_mgr.get_annotation(base)
+        has_annotation = len(labels) > 0
 
-        meta = candidates.get(base, {})
-        labels = dataset_mgr.get_annotation(base) if has_annotation else meta.get("labels", [])
+        if not has_annotation and base in candidates:
+            labels = candidates[base].get("labels", [])
 
         items.append({
             "filename": os.path.basename(f),
