@@ -695,10 +695,38 @@
             </div>
           </div>
 
-          <!-- Canvas / Image Container -->
+          <!-- Canvas / Image Container with Autonomous Inspection HUD -->
           <div class="canvas-wrapper" id="canvasWrapper">
-            <img id="reviewImgElement" src="" alt="Review image" class="review-image">
-            <div id="bboxOverlay" class="bbox-overlay"></div>
+            <!-- HUD Corner Reticles -->
+            <div class="hud-corner hud-corner-tl"></div>
+            <div class="hud-corner hud-corner-tr"></div>
+            <div class="hud-corner hud-corner-bl"></div>
+            <div class="hud-corner hud-corner-br"></div>
+
+            <!-- HUD Top Telemetry Bar -->
+            <div class="studio-hud-header">
+              <span class="hud-telemetry"><span class="hud-pulse-dot"></span> AUTONOMOUS INSPECTION STUDIO // VOC XML</span>
+              <span class="hud-coords" id="hudResolutionText">INITIALIZING...</span>
+            </div>
+
+            <!-- Sweeping Laser Scanline -->
+            <div class="studio-scanline" id="studioScanline"></div>
+
+            <!-- Approval Success Ripple Burst -->
+            <div class="studio-approval-burst" id="studioApprovalBurst">
+              <div class="approval-circle-pulse">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <span class="approval-label">PASCAL VOC GROUND TRUTH VERIFIED</span>
+            </div>
+
+            <!-- Stage Container for Image & Pixel-Perfect Overlay -->
+            <div class="canvas-stage" id="canvasStage">
+              <img id="reviewImgElement" src="" alt="Review image" class="review-image">
+              <div id="bboxOverlay" class="bbox-overlay"></div>
+            </div>
           </div>
 
           <!-- Label Review Controls -->

@@ -851,24 +851,79 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Trigger Laser Scanline Animation in Studio Viewer
+  function triggerStudioScan() {
+    const scanline = document.getElementById("studioScanline");
+    if (!scanline) return;
+    scanline.classList.remove("scanning");
+    void scanline.offsetWidth; // trigger reflow
+    scanline.classList.add("scanning");
+    setTimeout(() => {
+      scanline.classList.remove("scanning");
+    }, 1300);
+  }
+
   function selectReviewImage(idx) {
     if (idx < 0 || idx >= state.reviewImages.length) return;
     state.currentReviewIdx = idx;
     state.currentReviewItem = state.reviewImages[idx];
 
-    // Highlight active in list
-    document.querySelectorAll(".studio-image-item").forEach((el, i) => {
-      el.classList.toggle("active", i === idx);
+    // Highlight active in list with smooth tracking scroll
+    const listItems = document.querySelectorAll(".studio-image-item");
+    listItems.forEach((el, i) => {
+      const isActive = i === idx;
+      el.classList.toggle("active", isActive);
+      if (isActive) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     });
 
     imageNavIndex.textContent = `${idx + 1} / ${state.reviewImages.length}`;
     currentReviewFileName.textContent = state.currentReviewItem.filename;
-    currentReviewFileStatus.textContent = state.currentReviewItem.has_annotation
-      ? "Status: Verified & Annotated"
-      : "Status: Auto-generated candidate (Review & approve)";
+    
+    // Status text with glowing beacon
+    if (state.currentReviewItem.has_annotation) {
+      currentReviewFileStatus.innerHTML = `<span style="color: var(--accent-emerald); font-weight: 700;">● Verified Pascal VOC Ground Truth</span>`;
+    } else {
+      currentReviewFileStatus.innerHTML = `<span style="color: var(--accent-amber); font-weight: 600;">○ Pending Review & Ground Truth Check</span>`;
+    }
 
-    reviewImgElement.src = `${API_BASE}/api/raw-image/${state.currentReviewItem.filename}`;
-    renderReviewBoundingBoxes();
+    // 1. Smooth Fade-Out of current visual and boxes
+    reviewImgElement.classList.remove("fading-in");
+    reviewImgElement.classList.add("fading-out");
+    bboxOverlay.classList.remove("fading-in");
+    bboxOverlay.classList.add("fading-out");
+
+    const newSrc = `${API_BASE}/api/raw-image/${state.currentReviewItem.filename}`;
+    triggerStudioScan();
+
+    // 2. Preload new image in memory for zero-flicker fade-in
+    const preloader = new Image();
+    preloader.onload = () => {
+      reviewImgElement.src = newSrc;
+      const hudRes = document.getElementById("hudResolutionText");
+      if (hudRes) {
+        hudRes.textContent = `${preloader.naturalWidth} × ${preloader.naturalHeight} PX // VOC`;
+      }
+
+      // 3. Smooth Fade-In once loaded
+      setTimeout(() => {
+        reviewImgElement.classList.remove("fading-out");
+        reviewImgElement.classList.add("fading-in");
+        renderReviewBoundingBoxes();
+        bboxOverlay.classList.remove("fading-out");
+        bboxOverlay.classList.add("fading-in");
+      }, 60);
+    };
+
+    preloader.onerror = () => {
+      reviewImgElement.src = newSrc;
+      reviewImgElement.classList.remove("fading-out");
+      reviewImgElement.classList.add("fading-in");
+      renderReviewBoundingBoxes();
+    };
+
+    preloader.src = newSrc;
   }
 
   btnPrevImage.addEventListener("click", () => selectReviewImage(state.currentReviewIdx - 1));
@@ -880,37 +935,74 @@ document.addEventListener("DOMContentLoaded", () => {
     const labels = state.currentReviewItem.labels || [];
 
     if (labels.length === 0) {
-      activeLabelsList.innerHTML = `<span class="no-labels-text">No labels yet. Click Toggle or Approve to set.</span>`;
+      activeLabelsList.innerHTML = `<span class="no-labels-text">No bounding boxes registered for this visual.</span>`;
       return;
     }
 
     labels.forEach((lbl, i) => {
+      // Interactive Label Pill
       const pill = document.createElement("span");
       pill.className = `label-pill label-pill-${lbl.class_id === 0 ? "supporting" : "monopole"}`;
-      pill.textContent = `${lbl.class_name} (${(lbl.x_center*100).toFixed(0)}%, ${(lbl.y_center*100).toFixed(0)}%)`;
+      pill.innerHTML = `
+        <span style="font-size: 0.9em;">${lbl.class_id === 0 ? "🗼" : "📡"}</span>
+        <span>${lbl.class_name}</span>
+        <span style="opacity: 0.65; font-size: 0.85em; font-family: var(--font-mono);">${(lbl.width*100).toFixed(0)}×${(lbl.height*100).toFixed(0)}%</span>
+      `;
       activeLabelsList.appendChild(pill);
 
-      // Box on image
+      // Realistic Bounding Box with Corner Reticles & Floating Tag
       const box = document.createElement("div");
       box.className = `bbox-marker ${lbl.class_id === 0 ? "marker-supporting" : "marker-monopole"}`;
+      
       const left = (lbl.x_center - lbl.width / 2) * 100;
       const top = (lbl.y_center - lbl.height / 2) * 100;
       const w = lbl.width * 100;
       const h = lbl.height * 100;
 
-      box.style.position = "absolute";
       box.style.left = `${Math.max(0, left)}%`;
       box.style.top = `${Math.max(0, top)}%`;
       box.style.width = `${Math.min(100, w)}%`;
       box.style.height = `${Math.min(100, h)}%`;
-      box.style.border = `2px solid ${lbl.class_id === 0 ? "var(--accent-cyan)" : "var(--accent-emerald)"}`;
-      box.style.background = lbl.class_id === 0 ? "rgba(0, 210, 255, 0.15)" : "rgba(16, 185, 129, 0.15)";
-      box.style.boxSizing = "border-box";
+
+      // 4 Corner brackets for military/inspection HUD target lock
+      const cornerTL = document.createElement("span");
+      cornerTL.className = "corner-bracket corner-tl";
+      const cornerTR = document.createElement("span");
+      cornerTR.className = "corner-bracket corner-tr";
+      const cornerBL = document.createElement("span");
+      cornerBL.className = "corner-bracket corner-bl";
+      const cornerBR = document.createElement("span");
+      cornerBR.className = "corner-bracket corner-br";
+
+      // Floating Chip Badge
+      const badge = document.createElement("div");
+      badge.className = "bbox-badge";
+      badge.innerHTML = `
+        <span>${lbl.class_id === 0 ? "supporting_tower" : "monopole_tower"}</span>
+        <span class="bbox-badge-xml">VOC XML</span>
+      `;
+
+      box.appendChild(cornerTL);
+      box.appendChild(cornerTR);
+      box.appendChild(cornerBL);
+      box.appendChild(cornerBR);
+      box.appendChild(badge);
+
+      // Hover sync between pill and bounding box
+      pill.addEventListener("mouseenter", () => {
+        box.style.filter = "brightness(1.35)";
+        box.style.transform = "scale(1.02)";
+      });
+      pill.addEventListener("mouseleave", () => {
+        box.style.filter = "";
+        box.style.transform = "";
+      });
+
       bboxOverlay.appendChild(box);
     });
   }
 
-  // Toggle Class action
+  // Toggle Class action with smooth morph feedback
   btnToggleClass.addEventListener("click", () => {
     if (!state.currentReviewItem) return;
     const labels = state.currentReviewItem.labels;
@@ -930,10 +1022,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
     renderReviewBoundingBoxes();
-    showToast(`Switched class to ${labels[0].class_name}`, "info");
+    showToast(`Switched classification to: ${labels[0].class_name}`, "info");
   });
 
-  // Approve & Save Label action
+  // Approve & Save Label action with animated success burst
   btnApproveLabel.addEventListener("click", async () => {
     if (!state.currentReviewItem) return;
     const labels = state.currentReviewItem.labels;
@@ -960,13 +1052,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (res.ok) {
         state.currentReviewItem.has_annotation = true;
-        showToast(`Saved YOLO label for ${state.currentReviewItem.filename}`, "success");
+        
+        // Trigger realistic visual approval burst animation on canvas
+        const burst = document.getElementById("studioApprovalBurst");
+        if (burst) {
+          burst.classList.remove("show");
+          void burst.offsetWidth; // reflow
+          burst.classList.add("show");
+          setTimeout(() => burst.classList.remove("show"), 800);
+        }
+
+        showToast(`Ground Truth Approved & Saved for ${state.currentReviewItem.filename}!`, "success");
         refreshDatasetStats();
         renderGalleryList();
-        // Advance to next image
-        if (state.currentReviewIdx < state.reviewImages.length - 1) {
-          selectReviewImage(state.currentReviewIdx + 1);
-        }
+
+        // Advance to next image after brief visual confirmation
+        setTimeout(() => {
+          if (state.currentReviewIdx < state.reviewImages.length - 1) {
+            selectReviewImage(state.currentReviewIdx + 1);
+          }
+        }, 500);
       }
     } catch (err) {
       showToast(`Failed saving label: ${err.message}`, "error");
