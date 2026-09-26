@@ -209,6 +209,53 @@ def execute_pipeline():
         return jsonify({"error": "No filename or image data specified for execution"}), 400
 
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
+    # If an XML filename is specified directly, locate its corresponding image
+    if filename.lower().endswith(".xml"):
+        base = os.path.splitext(filename)[0]
+        matching_img = None
+        for search_dir in [
+            app.config["UPLOAD_FOLDER"],
+            dataset_mgr.raw_images_dir,
+            dataset_mgr.images_train_dir,
+            dataset_mgr.images_val_dir
+        ]:
+            for ext in [".jpg", ".jpeg", ".png", ".webp", ".JPG", ".JPEG", ".PNG"]:
+                cand = os.path.join(search_dir, f"{base}{ext}")
+                if os.path.exists(cand):
+                    matching_img = cand
+                    break
+            if matching_img:
+                break
+        
+        if matching_img:
+            filepath = matching_img
+        else:
+            # Create blueprint canvas using dimensions from XML
+            xml_path = os.path.join(dataset_mgr.labeled_images_dir, filename)
+            if not os.path.exists(xml_path):
+                xml_path = filepath
+            w, h = 640, 640
+            if os.path.exists(xml_path):
+                try:
+                    import xml.etree.ElementTree as ET
+                    tree = ET.parse(xml_path)
+                    sz = tree.getroot().find("size")
+                    if sz is not None:
+                        w = int(float(sz.find("width").text)) if sz.find("width") is not None else 640
+                        h = int(float(sz.find("height").text)) if sz.find("height") is not None else 640
+                except Exception:
+                    pass
+            canvas = np.zeros((h, w, 3), dtype=np.uint8)
+            canvas[:] = (32, 38, 48)
+            result = inference_engine.process_image(
+                canvas,
+                conf_thresh=conf_thresh,
+                bypass_quality_filter=True,
+                filename=filename
+            )
+            return jsonify(result)
+
     if not os.path.exists(filepath):
         # Also check raw_images
         filepath = os.path.join(dataset_mgr.raw_images_dir, filename)

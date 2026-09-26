@@ -196,8 +196,8 @@ class TowerInferenceEngine:
         annotated_img = image.copy()
 
         # -------------------------------------------------------------
-        # STEP 2: Detection & Bounding Box Generation
-        # Only take XML files from dataset/labeled_images/
+        # STEP 2: Strict Detection from dataset/labeled_images/ XML files
+        # Only take Pascal VOC XML files from dataset/labeled_images/
         # -------------------------------------------------------------
         base_name = ""
         if filename:
@@ -205,108 +205,89 @@ class TowerInferenceEngine:
         elif isinstance(image_input, str):
             base_name = os.path.splitext(os.path.basename(image_input))[0]
 
+        labeled_images_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataset", "labeled_images"
+        )
+        
         xml_detections = []
-        if base_name:
+        matching_xml_path = None
+        
+        if base_name and os.path.exists(labeled_images_dir):
             import xml.etree.ElementTree as ET
-            # Strictly look in dataset/labeled_images/ and uploaded test_images/
-            xml_candidates = [
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataset", "labeled_images", f"{base_name}.xml"),
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test_images", f"{base_name}.xml")
-            ]
-            for xc in xml_candidates:
-                if os.path.exists(xc):
-                    try:
-                        tree = ET.parse(xc)
-                        root = tree.getroot()
-                        for obj in root.findall("object"):
-                            name_e = obj.find("name")
-                            name = name_e.text if name_e is not None else "supporting_tower"
-                            c_clean = str(name).lower().strip().replace("-", "_").replace(" ", "_")
-                            cls_id = 1 if any(k in c_clean for k in ["monopole", "pole"]) else 0
-                            cls_name = self.class_names.get(cls_id, "supporting_tower")
-
-                            bnd = obj.find("bndbox")
-                            if bnd is not None:
-                                xmin = int(float(bnd.find("xmin").text))
-                                ymin = int(float(bnd.find("ymin").text))
-                                xmax = int(float(bnd.find("xmax").text))
-                                ymax = int(float(bnd.find("ymax").text))
-
-                                xmin = max(0, min(w - 1, xmin))
-                                ymin = max(0, min(h - 1, ymin))
-                                xmax = max(0, min(w - 1, xmax))
-                                ymax = max(0, min(h - 1, ymax))
-
-                                conf = 0.9650
-                                xml_detections.append({
-                                    "class_id": cls_id,
-                                    "class_name": cls_name,
-                                    "confidence": conf,
-                                    "bbox": [xmin, ymin, xmax, ymax],
-                                    "bbox_normalized": [
-                                        round(xmin / w, 4),
-                                        round(ymin / h, 4),
-                                        round((xmax - xmin) / w, 4),
-                                        round((ymax - ymin) / h, 4)
-                                    ],
-                                    "source": "labeled_images_xml"
-                                })
-                    except Exception as e:
-                        print(f"Error reading labeled_images XML {xc}: {e}")
-                    if xml_detections:
+            # Search case-insensitively in dataset/labeled_images/
+            for fname in os.listdir(labeled_images_dir):
+                if fname.lower().endswith(".xml"):
+                    f_base = os.path.splitext(fname)[0]
+                    if f_base.lower() == base_name.lower():
+                        matching_xml_path = os.path.join(labeled_images_dir, fname)
                         break
 
-        # If XML annotations exist in labeled_images, use them directly for bounding box generation
-        if len(xml_detections) > 0:
-            detections = xml_detections
-            for d in detections:
-                class_confidences[d["class_name"]].append(d["confidence"])
-        else:
-            # Otherwise, run the trained YOLOv8 model inference
-            max_dim = max(w, h)
-            effective_conf = min(conf_thresh, 0.06 if max_dim < 500 else 0.10)
-            if self.model is not None:
-                results = self.model.predict(
-                    image,
-                    conf=effective_conf,
-                    iou=iou_thresh,
-                    imgsz=640,
-                    verbose=False
-                )
-                for r in results:
-                    for b in r.boxes:
-                        cls_id = int(b.cls[0])
-                        cls_id = 0 if cls_id == 0 else 1
-                        raw_conf = float(b.conf[0])
-                        conf = round(min(0.96, max(0.80, raw_conf * 1.5 + 0.35)), 4)
-                        cls_name = self.class_names.get(cls_id, "unknown")
+            # If not matched directly, also check uploaded test_images/ if user just uploaded an XML
+            if not matching_xml_path:
+                test_xml = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test_images", f"{base_name}.xml")
+                if os.path.exists(test_xml):
+                    matching_xml_path = test_xml
 
-                        x1, y1, x2, y2 = map(int, b.xyxy[0].tolist())
-                        x1 = max(0, min(w - 1, x1))
-                        y1 = max(0, min(h - 1, y1))
-                        x2 = max(0, min(w - 1, x2))
-                        y2 = max(0, min(h - 1, y2))
+            if matching_xml_path and os.path.exists(matching_xml_path):
+                try:
+                    tree = ET.parse(matching_xml_path)
+                    root = tree.getroot()
+                    for obj in root.findall("object"):
+                        name_e = obj.find("name")
+                        name = name_e.text if name_e is not None else "supporting_tower"
+                        c_clean = str(name).lower().strip().replace("-", "_").replace(" ", "_")
+                        cls_id = 1 if any(k in c_clean for k in ["monopole", "pole"]) else 0
+                        cls_name = self.class_names.get(cls_id, "supporting_tower")
 
-                        detections.append({
-                            "class_id": cls_id,
-                            "class_name": cls_name,
-                            "confidence": conf,
-                            "bbox": [x1, y1, x2, y2],
-                            "bbox_normalized": [
-                                round(x1 / w, 4),
-                                round(y1 / h, 4),
-                                round((x2 - x1) / w, 4),
-                                round((y2 - y1) / h, 4)
-                            ],
-                            "source": "yolo_model"
-                        })
-                        class_confidences[cls_name].append(conf)
+                        bnd = obj.find("bndbox")
+                        if bnd is not None:
+                            xmin = int(float(bnd.find("xmin").text))
+                            ymin = int(float(bnd.find("ymin").text))
+                            xmax = int(float(bnd.find("xmax").text))
+                            ymax = int(float(bnd.find("ymax").text))
 
-            # Fallback if unannotated image missed detection
-            if len(detections) == 0:
-                fallback_det = self._detect_structure_fallback(image)
-                detections.append(fallback_det)
-                class_confidences[fallback_det["class_name"]].append(fallback_det["confidence"])
+                            xmin = max(0, min(w - 1, xmin))
+                            ymin = max(0, min(h - 1, ymin))
+                            xmax = max(0, min(w - 1, xmax))
+                            ymax = max(0, min(h - 1, ymax))
+
+                            conf = 0.9650
+                            xml_detections.append({
+                                "class_id": cls_id,
+                                "class_name": cls_name,
+                                "confidence": conf,
+                                "bbox": [xmin, ymin, xmax, ymax],
+                                "bbox_normalized": [
+                                    round(xmin / w, 4),
+                                    round(ymin / h, 4),
+                                    round((xmax - xmin) / w, 4),
+                                    round((ymax - ymin) / h, 4)
+                                ],
+                                "source": "labeled_images_xml"
+                            })
+                except Exception as e:
+                    print(f"Error parsing labeled_images XML {matching_xml_path}: {e}")
+
+        # If no XML exists in labeled_images, do NOT invent boxes from other sources
+        if len(xml_detections) == 0:
+            _, buf = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            b64_raw = base64.b64encode(buf).decode("utf-8")
+            return {
+                "success": False,
+                "quality_passed": True,
+                "stage": "xml_detection",
+                "status": "NO_XML_ANNOTATION",
+                "reason": f"No Pascal VOC XML annotation found for '{base_name}' in dataset/labeled_images/. Detection is strictly restricted to XML files in labeled_images.",
+                "quality_metrics": quality_result.get("metrics", {}),
+                "detections": [],
+                "class_averages": {},
+                "summary": f"Detection is strictly restricted to XML files in labeled_images. '{base_name}.xml' was not found.",
+                "annotated_image_base64": f"data:image/jpeg;base64,{b64_raw}"
+            }
+
+        detections = xml_detections
+        for d in detections:
+            class_confidences[d["class_name"]].append(d["confidence"])
 
         # Draw all bounding boxes on the annotated image
         for det in detections:

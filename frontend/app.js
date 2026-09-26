@@ -723,6 +723,26 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (data.status === "NO_XML_ANNOTATION") {
+      stepQuality.classList.add("completed");
+      stepDetect.classList.remove("active", "completed");
+      stepOutput.classList.remove("completed");
+
+      qualityVerdictBadge.className = "verdict-badge verdict-warning";
+      qualityVerdictBadge.innerHTML = `<span>XML NOT FOUND</span>`;
+      qualityStatusText.textContent = "No XML in labeled_images";
+
+      qualityReasonBanner.style.display = "block";
+      qualityReasonBanner.innerHTML = `⚠️ <strong>Detection Restriction Notice:</strong> ${data.reason || "Detection is strictly restricted to Pascal VOC XML files in dataset/labeled_images/."}`;
+
+      if (btnBypassQuality) btnBypassQuality.style.display = "none";
+      classAveragesSection.style.display = "none";
+      detectionsTableSection.style.display = "none";
+
+      showToast("Detection is restricted to labeled XML files. Please pick a sample or upload the XML file.", "warning");
+      return;
+    }
+
     // 2. Detection Completed (Passed or Flagged Notice)
     stepQuality.classList.add("completed");
     stepDetect.classList.add("completed");
