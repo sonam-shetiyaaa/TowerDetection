@@ -4,10 +4,14 @@ TowerAI Autonomous Vision Platform
 """
 
 import os
+import sys
 import glob
 import json
 import base64
 import threading
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import cv2
 import numpy as np
 from flask import Flask, request, jsonify, send_from_directory, send_file
@@ -93,6 +97,38 @@ def upload_image():
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
         file.save(filepath)
 
+        # If user uploaded a Pascal VOC XML file
+        if safe_name.lower().endswith(".xml"):
+            dest_xml = os.path.join(dataset_mgr.labeled_images_dir, safe_name)
+            shutil.copy2(filepath, dest_xml)
+            dest_xml2 = os.path.join(dataset_mgr.annotations_dir, safe_name)
+            shutil.copy2(filepath, dest_xml2)
+            labels = dataset_mgr.parse_voc_xml(filepath)
+            base = os.path.splitext(safe_name)[0]
+            if labels:
+                dataset_mgr.save_annotation(base, labels)
+
+            # Check if matching image exists in raw_images or test_images
+            matching_img = None
+            for ext in [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp"]:
+                candidate = os.path.join(dataset_mgr.raw_images_dir, f"{base}{ext}")
+                if os.path.exists(candidate):
+                    matching_img = f"{base}{ext}"
+                    # copy to test_images so it can be previewed/executed immediately
+                    shutil.copy2(candidate, os.path.join(app.config["UPLOAD_FOLDER"], matching_img))
+                    break
+
+            return jsonify({
+                "success": True,
+                "is_xml": True,
+                "filename": safe_name,
+                "base_name": base,
+                "label_count": len(labels),
+                "labels": labels,
+                "matching_image": matching_img,
+                "size_kb": round(os.path.getsize(filepath) / 1024, 1)
+            })
+
     # 2. Handle JSON base64 upload
     elif request.is_json and ("image" in request.json or "image_base64" in request.json):
         data = request.json
@@ -111,7 +147,7 @@ def upload_image():
         with open(filepath, "wb") as f:
             f.write(raw_bytes)
     else:
-        return jsonify({"error": "No image file provided in upload"}), 400
+        return jsonify({"error": "No image or XML file provided in upload"}), 400
 
     # Read image to obtain dimensions and preview
     img = cv2.imread(filepath)
@@ -121,12 +157,13 @@ def upload_image():
             pil_img = Image.open(filepath).convert("RGB")
             w, h = pil_img.size
         except Exception:
-            return jsonify({"error": "Uploaded file is not a valid image format"}), 400
+            return jsonify({"error": "Uploaded file is not a valid image or XML format"}), 400
     else:
         h, w = img.shape[:2]
 
     return jsonify({
         "success": True,
+        "is_xml": False,
         "filename": safe_name,
         "filepath": filepath,
         "width": w,

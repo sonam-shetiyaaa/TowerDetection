@@ -404,14 +404,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Upload Progress simulation & execution
   async function handleFileUpload(file) {
-    const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".jfif", ".tif", ".tiff"];
+    const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".jfif", ".tif", ".tiff", ".xml"];
     const filename = file.name || "tower_photo.jpg";
     const ext = filename.substring(filename.lastIndexOf(".")).toLowerCase();
     const isImageMime = file.type && file.type.startsWith("image/");
+    const isXml = ext === ".xml" || (file.type && file.type.includes("xml"));
     const isImageExt = validExtensions.includes(ext);
 
-    if (!isImageMime && !isImageExt) {
-      showToast("Please upload an image file (JPG, PNG, WebP).", "error");
+    if (!isImageMime && !isImageExt && !isXml) {
+      showToast("Please upload an image (JPG, PNG) or Pascal VOC XML file.", "error");
       return;
     }
 
@@ -422,12 +423,14 @@ document.addEventListener("DOMContentLoaded", () => {
     resetStepper();
     stepUpload.classList.add("active");
 
-    // Instantly display the image in preview so user immediately sees their photo permanently
-    try {
-      const localUrl = URL.createObjectURL(file);
-      previewImg.src = localUrl;
-    } catch (e) {
-      console.warn("Could not create object URL:", e);
+    if (!isXml) {
+      // Instantly display the image in preview so user immediately sees their photo permanently
+      try {
+        const localUrl = URL.createObjectURL(file);
+        previewImg.src = localUrl;
+      } catch (e) {
+        console.warn("Could not create object URL:", e);
+      }
     }
     previewName.textContent = filename;
     previewDimensions.textContent = `${(file.size / 1024).toFixed(1)} KB (Uploading...)`;
@@ -467,10 +470,31 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const resp = await res.json();
-      state.selectedFilename = resp.filename || filename;
-
       uploadProgressBar.style.width = "100%";
       uploadProgressPct.textContent = "100%";
+
+      if (resp.is_xml) {
+        setTimeout(() => {
+          if (uploadProgressWrapper) uploadProgressWrapper.style.display = "none";
+          previewName.textContent = resp.filename;
+          stepUpload.classList.add("completed");
+          showToast(`Loaded Pascal VOC XML with ${resp.label_count} bounding box(es)!`, "success");
+
+          if (resp.matching_image) {
+            state.selectedFilename = resp.matching_image;
+            previewImg.src = `${API_BASE}/api/test-image/${resp.matching_image}`;
+            previewDimensions.textContent = `Linked image: ${resp.matching_image}`;
+            btnExecute.disabled = false;
+            runPipelineExecution(false);
+          } else {
+            previewDimensions.textContent = `XML Ground Truth (${resp.label_count} boxes)`;
+            btnExecute.disabled = false;
+          }
+        }, 250);
+        return;
+      }
+
+      state.selectedFilename = resp.filename || filename;
 
       setTimeout(() => {
         if (uploadProgressWrapper) uploadProgressWrapper.style.display = "none";
